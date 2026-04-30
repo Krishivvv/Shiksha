@@ -1,34 +1,31 @@
 import os
 import json
-try:
-    import redis
-except ImportError:
-    redis = None
+import logging
+import redis as redis_lib
 
-REDIS_URL = os.getenv("REDIS_URL")
-if redis and REDIS_URL:
-    redis_client = redis.from_url(REDIS_URL, decode_responses=True)
-else:
-    redis_client = None
+logger = logging.getLogger(__name__)
 
-# For local fallback
-progress_data = {"step": "Not started", "message": ""}
+_REDIS_URL = os.getenv("REDIS_URL")
+if not _REDIS_URL:
+    raise EnvironmentError("REDIS_URL is required for progress tracking")
 
-def set_progress(progress_info, user_id="global"):
-    data = json.dumps(progress_info)
-    if redis_client:
-        redis_client.set(f"progress:{user_id}", data)
-    else:
-        global progress_data
-        progress_data = progress_info
+_client = redis_lib.from_url(_REDIS_URL, decode_responses=True)
 
-def get_progress(user_id="global"):
-    if redis_client:
-        data = redis_client.get(f"progress:{user_id}")
-        if data:
-            return json.loads(data)
-        else:
-            return {"step": "Not started", "message": ""}
-    else:
-        global progress_data
-        return progress_data
+_TTL = 3600  # 1 hour
+
+
+def set_progress(progress_info: dict, user_id: str = "global") -> None:
+    try:
+        _client.setex(f"progress:{user_id}", _TTL, json.dumps(progress_info))
+    except Exception:
+        logger.exception("Failed to write progress to Redis for user_id=%s", user_id)
+
+
+def get_progress(user_id: str = "global") -> dict:
+    try:
+        raw = _client.get(f"progress:{user_id}")
+        if raw:
+            return json.loads(raw)
+    except Exception:
+        logger.exception("Failed to read progress from Redis for user_id=%s", user_id)
+    return {"state": "not_started", "step": "Not started", "message": ""}
