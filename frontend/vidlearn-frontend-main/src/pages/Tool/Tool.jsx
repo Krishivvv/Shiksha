@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import ToolNav from "./components/ToolNav";
 import PromptBox from "./components/PromptBox";
-import ToolHeader from "./components/ToolHeader";
 import VideoBox from "./components/VideoBox";
-import "./Tool.css";
+import Nav from "../Home/components/Nav"; // We can reuse the main Nav for top
+import Footer from "../../components/Footer";
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -17,7 +17,6 @@ function Tool() {
   const [timeValue, setTimeValue] = useState(1);
   const [progress, setProgress] = useState(null);
 
-  // Fetch past generations on mount
   useEffect(() => {
     fetch(`${API}/history`, { credentials: "include" })
       .then((res) => res.json())
@@ -32,7 +31,6 @@ function Tool() {
       .catch(console.error);
   }, []);
 
-  // Poll /progress while loading
   useEffect(() => {
     if (!loading) {
       setProgress(null);
@@ -115,48 +113,59 @@ function Tool() {
   };
 
   return (
-    <div className="tool-wrapper">
+    <div className="tool-layout">
+      <Nav />
       <ToolNav open={open} handleNav={handleNav} history={history} />
-      <div className="tool-main">
-        <ToolHeader open={open} handleNav={handleNav} />
-        <div className="tool-content">
-          <div className="tool-heading">
-            <h1 className="tool-title">
-              Generate an{" "}
-              <span className="gradient-text">educational video</span>
-            </h1>
-            <p className="tool-subtitle">
-              Describe any topic and GyanAI will build an animated lesson with voiceover.
-            </p>
+      <div className="tool-container fade-in">
+        <div className="tool-header-area" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+          <div>
+            <h2>Generate an <span style={{color: 'var(--accent)'}}>educational video</span></h2>
+            <p>Describe any topic and GyanAI will build an animated lesson with voiceover.</p>
           </div>
+          <button className="btn btn-secondary" onClick={handleNav}>
+            View History
+          </button>
+        </div>
 
-          <PromptBox
-            prompt={prompt}
-            handleChange={handleChange}
-            handleFileUpload={handleFileUpload}
-            handleSubmit={handleSubmit}
-            loading={loading}
-            timeValue={timeValue}
-            handleSliderChange={handleSliderChange}
-            file={file}
-          />
+        <PromptBox
+          prompt={prompt}
+          handleChange={handleChange}
+          handleFileUpload={handleFileUpload}
+          handleSubmit={handleSubmit}
+          loading={loading}
+          timeValue={timeValue}
+          handleSliderChange={handleSliderChange}
+          file={file}
+        />
 
-          {loading && (
-            <div className="progress-section">
-              <div className="progress-spinner" />
+        {loading && (
+          <div className="card" style={{marginTop: '24px'}}>
+            <div className="progress-area">
+              <div className="spinner" />
+              <div className="badge badge-processing">Processing</div>
               <p className="progress-step">
                 {progress?.step || "Initializing generation…"}
               </p>
               <p className="progress-msg">
-                {progress?.message ||
-                  "Setting up your video pipeline. This may take a few minutes."}
+                {progress?.message || "Setting up your video pipeline. This may take a few minutes."}
               </p>
             </div>
-          )}
+            {/* Skeletons to show it's working */}
+            <div style={{marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '8px'}}>
+               <div className="skeleton" style={{height: '16px', width: '100%'}}></div>
+               <div className="skeleton" style={{height: '16px', width: '80%'}}></div>
+               <div className="skeleton" style={{height: '16px', width: '90%'}}></div>
+            </div>
+          </div>
+        )}
 
-          {videoUrl && !loading && <VideoBox videoUrl={videoUrl} />}
-        </div>
+        {videoUrl && !loading && (
+          <div style={{marginTop: '24px'}}>
+            <VideoBox videoUrl={videoUrl} />
+          </div>
+        )}
       </div>
+      <Footer />
     </div>
   );
 }

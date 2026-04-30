@@ -5,13 +5,19 @@ const API = import.meta.env.VITE_API_URL;
 
 function VideoBox({ videoUrl }) {
   return (
-    <div className="video-box">
-      <p className="video-box-title">Your Generated Video</p>
+    <div className="card">
+      <div className="label-caps" style={{marginBottom: '16px'}}>Your Generated Video</div>
+      
+      <div className="output-box" style={{padding: '8px', marginBottom: '16px'}}>
+        <video 
+          src={videoUrl} 
+          controls 
+          style={{width: '100%', borderRadius: '4px', backgroundColor: '#000'}} 
+        />
+      </div>
 
-      <video src={videoUrl} controls className="video-result" />
-
-      <div className="video-actions">
-        <a href={videoUrl} download className="download-btn">
+      <div style={{display: 'flex', gap: '12px'}}>
+        <a href={videoUrl} download className="btn btn-primary" style={{flex: 1}}>
           <MdDownload />
           Download Video
         </a>
@@ -19,10 +25,11 @@ function VideoBox({ videoUrl }) {
           href={`${API}/download-pdf`}
           target="_blank"
           rel="noopener noreferrer"
-          className="download-btn"
+          className="btn btn-secondary"
+          style={{flex: 1}}
         >
           <MdDownload />
-          Download Study Notes (PDF)
+          Download Study Notes
         </a>
       </div>
     </div>

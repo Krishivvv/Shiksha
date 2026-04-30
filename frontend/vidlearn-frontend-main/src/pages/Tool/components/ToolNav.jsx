@@ -18,24 +18,40 @@ function ToolNav({ open, handleNav, history }) {
   };
 
   return (
-    <div className={`tool-nav ${open ? "active" : ""}`}>
-      <div className="tool-nav-top">
-        <span className="tool-nav-title">Past Generations</span>
-        <button className="icon-btn" onClick={handleNav} aria-label="Close">
+    <div 
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: open ? 0 : '-300px',
+        width: '300px',
+        height: '100vh',
+        backgroundColor: 'var(--bg-surface)',
+        borderRight: '1px solid var(--border)',
+        zIndex: 1000,
+        transition: 'left var(--transition-normal)',
+        display: 'flex',
+        flexDirection: 'column',
+        boxShadow: open ? 'var(--shadow-elevated)' : 'none',
+        padding: '24px'
+      }}
+    >
+      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px'}}>
+        <span style={{fontWeight: 600, color: 'var(--text-primary)'}}>Past Generations</span>
+        <button onClick={handleNav} style={{background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '20px'}}>
           <MdOutlineClose />
         </button>
       </div>
 
-      <div className="vid-gallery">
+      <div style={{flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px'}}>
         {history.length === 0 && (
-          <p className="history-empty">No videos generated yet.</p>
+          <p style={{color: 'var(--text-muted)', fontSize: '13px', textAlign: 'center', marginTop: '40px'}}>No videos generated yet.</p>
         )}
         {history.map((item) => (
           <ToolVideo key={item.filename} vid={item.url} prompt={item.prompt_text} />
         ))}
       </div>
 
-      <button className="logout-btn" onClick={handleLogout}>
+      <button className="btn btn-secondary" onClick={handleLogout} style={{width: '100%'}}>
         <RiLogoutBoxLine />
         Log Out
       </button>
