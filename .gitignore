@@ -1,0 +1,17 @@
+.env
+.env*
+__pycache__/
+*.pyc
+*.pyo
+output/
+segments/
+pdf_images/
+migrations/
+instance/
+final_videos/
+voice/
+# dependencies
+/node_modules
+
+# production
+/build

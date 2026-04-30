@@ -1,0 +1,14 @@
+[
+  {
+    "id": "segment_001",
+    "voice_script": "Thermodynamics is the study of heat, energy, and the work they do in physical systems. It helps us understand how energy transforms from one form to another.",
+    "animation": "Begin with a glowing ball of energy centered on a black background. Animate it transforming into various forms like a lit bulb, moving gears, and a flowing waterfall, symbolizing different energy transformations.",
+    "duration": 7
+  },
+  {
+    "id": "segment_002",
+    "voice_script": "One of the key concepts is the conservation of energy, which states that energy cannot be created or destroyed, only transformed.",
+    "animation": "Show energy flowing in an endless loop cycle: a rotating arrow that morphs into different energy symbols, illustrating the idea of conservation and transformation.",
+    "duration": 8
+  }
+]
