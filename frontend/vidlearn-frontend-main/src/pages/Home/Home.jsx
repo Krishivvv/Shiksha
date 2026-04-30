@@ -109,7 +109,7 @@ function Home() {
         title="Neural Text-to-Speech"
         description="Bring the lesson to life with a studio-quality AI voiceover. Our integrated TTS engine reads the script with natural human intonation."
         subFeatures={[
-          "OpenAI TTS Alloy voice integration",
+          "Edge TTS AriaNeural voice synthesis",
           "High-fidelity MP3 streaming",
           "Automated segment merging using FFmpeg"
         ]}
