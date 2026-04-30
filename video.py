@@ -17,16 +17,16 @@ def merge_with_ffmpeg(video_path, audio_path, output_path):
 
     try:
         subprocess.run(command, check=True)
-        print(f"✅ Merged into {output_path}")
+        print(f"Merged into {output_path}")
     except subprocess.CalledProcessError as e:
-        print("❌ FFmpeg failed:", e)
+        print("FFmpeg failed:", e)
 
 def merge_videos(folder_path, output_path):
     folder = Path(folder_path).resolve()  # Make absolute path
     video_files = sorted(folder.glob("segment_*.mp4"))
 
     if not video_files:
-        print("❌ No .mp4 files found in folder.")
+        print("No .mp4 files found in folder.")
         return
 
     concat_file = folder / "concat_list.txt"
@@ -48,6 +48,6 @@ def merge_videos(folder_path, output_path):
 
     try:
         subprocess.run(command, check=True)
-        print(f"✅ Merged into {output_path}")
+        print(f"Merged into {output_path}")
     except subprocess.CalledProcessError as e:
-        print("❌ FFmpeg failed to stitch videos:", e)
+        print("FFmpeg failed to stitch videos:", e)

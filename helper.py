@@ -8,7 +8,7 @@ async def safe_launch(*args, **kwargs):
     original_signal = signal.signal
 
     def silent_blocker(sig, handler):
-        print(f"⚠️ [SafeLaunch] Ignored signal registration for sig={sig}")
+        print(f"[SafeLaunch] Ignored signal registration for sig={sig}")
 
     signal.signal = silent_blocker  # temporarily ignore
     try:
@@ -41,6 +41,6 @@ def clear_folder(folder_path):
                         Path(root, subdir).rmdir()
                 item.rmdir()
         except Exception as e:
-            print(f"❌ Failed to delete {item}: {e}")
+            print(f"Failed to delete {item}: {e}")
 
-    print(f"✅ Cleared contents of folder: {folder}")
+    print(f"Cleared contents of folder: {folder}")
