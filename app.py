@@ -71,6 +71,10 @@ login_manager.login_view = "login"
 def load_user(user_id):
     return db.session.get(User, int(user_id))
 
+@login_manager.unauthorized_handler
+def unauthorized():
+    return jsonify({"error": "Unauthorized. Please log in."}), 401
+
 
 with app.app_context():
     db.create_all()
