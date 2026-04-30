@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 
 load_dotenv()  # must run before any module that reads env vars at import time
 
+from openai import OpenAI
 from google import genai
 from google.genai import types
 import edge_tts
@@ -26,6 +27,20 @@ from pdf import extract_last_frame, generate_pdf
 logger = logging.getLogger(__name__)
 
 _genai_client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
+_kodekloud_api_key = os.getenv("KODEKLOUD_API_KEY")
+_kodekloud_backup_api_key = os.getenv("KODEKLOUD_API_KEY_BACKUP")
+_kodekloud_base_url = os.getenv("KODEKLOUD_BASE_URL", "https://api.ai.kodekloud.com/v1")
+_kodekloud_model = os.getenv("KODEKLOUD_MODEL", "google/gemini-3.1-pro-preview")
+_kodekloud_client = (
+    OpenAI(api_key=_kodekloud_api_key, base_url=_kodekloud_base_url)
+    if _kodekloud_api_key
+    else None
+)
+_kodekloud_backup_client = (
+    OpenAI(api_key=_kodekloud_backup_api_key, base_url=_kodekloud_base_url)
+    if _kodekloud_backup_api_key
+    else None
+)
 
 if os.name == "nt":
     possible_paths = [
@@ -51,8 +66,54 @@ logger.info("Using Chrome path: %s", CHROME_PATH)
 
 # ── LLM ──────────────────────────────────────────────────────────────────────
 
-def generate_response(msg_history, model="gemini-2.5-flash"):
-    """Convert OpenAI-style message history and call Gemini."""
+def generate_response(msg_history, model="gemini-2.0-flash"):
+    """Use KodeKloud OpenAI-compatible API if configured; fallback to Gemini."""
+    import time
+    if _kodekloud_client is not None:
+        max_retries = 3
+        clients = [("primary", _kodekloud_client)]
+        if _kodekloud_backup_client is not None:
+            clients.append(("backup", _kodekloud_backup_client))
+
+        last_error = None
+        for client_name, client in clients:
+            for attempt in range(max_retries):
+                try:
+                    response = client.chat.completions.create(
+                        model=_kodekloud_model,
+                        messages=msg_history,
+                    )
+                    return response.choices[0].message.content or ""
+                except Exception as e:
+                    last_error = e
+                    error_text = str(e).lower()
+                    is_retryable = (
+                        "429" in error_text
+                        or "rate limit" in error_text
+                        or "quota" in error_text
+                        or "401" in error_text
+                        or "403" in error_text
+                        or "unauthorized" in error_text
+                        or "forbidden" in error_text
+                    )
+                    if is_retryable and attempt < max_retries - 1:
+                        wait_time = (attempt + 1) * 15
+                        logger.warning(
+                            "KodeKloud %s key issue (%s). Waiting %ds before retry...",
+                            client_name,
+                            str(e),
+                            wait_time,
+                        )
+                        time.sleep(wait_time)
+                        continue
+                    break
+
+            if client_name == "primary" and _kodekloud_backup_client is not None:
+                logger.warning("Switching from primary to backup KodeKloud API key.")
+
+        if last_error is not None:
+            raise last_error
+
     messages = msg_history[:]
     system_instruction = None
 
@@ -69,8 +130,21 @@ def generate_response(msg_history, model="gemini-2.5-flash"):
     ]
 
     config = types.GenerateContentConfig(system_instruction=system_instruction) if system_instruction else None
-    response = _genai_client.models.generate_content(model=model, contents=contents, config=config)
-    return response.text
+    
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            response = _genai_client.models.generate_content(model=model, contents=contents, config=config)
+            return response.text
+        except Exception as e:
+            if "RESOURCE_EXHAUSTED" in str(e) or "429" in str(e) or "Quota" in str(e):
+                if attempt < max_retries - 1:
+                    wait_time = (attempt + 1) * 15
+                    logger.warning("Rate limited (%s). Waiting %ds and falling back to gemini-1.5-flash...", str(e), wait_time)
+                    time.sleep(wait_time)
+                    model = "gemini-2.5-flash" # Use a different model's quota
+                    continue
+            raise e
 
 
 # ── TTS ───────────────────────────────────────────────────────────────────────
