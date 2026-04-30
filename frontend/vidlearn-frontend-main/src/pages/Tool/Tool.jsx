@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import ToolNav from "./components/ToolNav";
 import PromptBox from "./components/PromptBox";
 import VideoBox from "./components/VideoBox";
-import Nav from "../Home/components/Nav"; // We can reuse the main Nav for top
-import Footer from "../../components/Footer";
+import LinearNav from "../Home/components/LinearNav";
+import LinearFooter from "../Home/components/LinearFooter";
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -17,37 +17,80 @@ function Tool() {
   const [timeValue, setTimeValue] = useState(1);
   const [progress, setProgress] = useState(null);
 
+  // Refs for the active task being polled
+  const taskIdRef = useRef(null);
+  const pollIntervalRef = useRef(null);
+
+  // ── Fetch history on mount ──────────────────────────────────────────────
   useEffect(() => {
     fetch(`${API}/history`, { credentials: "include" })
-      .then((res) => res.json())
-      .then((data) =>
+      .then((res) => {
+        if (res.status === 401) return { videos: [] }; // not logged in
+        return res.json();
+      })
+      .then((data) => {
+        // Backend returns { videos: [...], total, page, pages }
+        const videos = data.videos || data || [];
         setHistory(
-          data.map((v) => ({
+          videos.map((v) => ({
             ...v,
             url: `${API}/download-video?filename=${v.filename}`,
           }))
-        )
-      )
+        );
+      })
       .catch(console.error);
   }, []);
 
+  // ── Cleanup poll on unmount ─────────────────────────────────────────────
   useEffect(() => {
-    if (!loading) {
-      setProgress(null);
-      return;
-    }
-    const id = setInterval(async () => {
+    return () => {
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+    };
+  }, []);
+
+  // ── Poll /task-status/<task_id> while loading ───────────────────────────
+  const startPolling = (taskId) => {
+    taskIdRef.current = taskId;
+
+    pollIntervalRef.current = setInterval(async () => {
       try {
-        const res = await fetch(`${API}/progress`, { credentials: "include" });
+        const res = await fetch(`${API}/task-status/${taskId}`, {
+          credentials: "include",
+        });
+        if (!res.ok) return;
         const data = await res.json();
         setProgress(data);
-      } catch {}
-    }, 2000);
-    return () => clearInterval(id);
-  }, [loading]);
 
+        if (data.state === "completed") {
+          // Generation finished — extract filename and build URL
+          clearInterval(pollIntervalRef.current);
+          pollIntervalRef.current = null;
+
+          const filename = data.filename;
+          if (filename) {
+            const url = `${API}/download-video?filename=${filename}`;
+            setVideoUrl(url);
+            setHistory((prev) => [
+              { filename, url, prompt_text: prompt, status: "completed" },
+              ...prev,
+            ]);
+          }
+          setLoading(false);
+        } else if (data.state === "failed") {
+          clearInterval(pollIntervalRef.current);
+          pollIntervalRef.current = null;
+          alert(data.message || "Video generation failed.");
+          setLoading(false);
+        }
+      } catch {
+        // silently retry
+      }
+    }, 2500);
+  };
+
+  // ── Handlers ────────────────────────────────────────────────────────────
   const handleNav = (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     setOpen((o) => !o);
   };
 
@@ -63,16 +106,20 @@ function Tool() {
     const form = new FormData();
     form.append("attachment", f);
 
-    const res = await fetch(`${API}/upload-pdf`, {
-      method: "POST",
-      credentials: "include",
-      body: form,
-    });
-    const data = await res.json();
-    if (res.ok) {
-      setFile(f);
-    } else {
-      alert(data.error);
+    try {
+      const res = await fetch(`${API}/upload-pdf`, {
+        method: "POST",
+        credentials: "include",
+        body: form,
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setFile(f);
+      } else {
+        alert(data.error || "Upload failed");
+      }
+    } catch {
+      alert("Network error uploading file");
     }
   };
 
@@ -82,6 +129,8 @@ function Tool() {
 
     setLoading(true);
     setVideoUrl("");
+    setProgress(null);
+
     const form = new FormData();
     const refined_prompt = `${prompt}. minimum duration of video: ${timeValue} minutes`;
     form.append("prompt", refined_prompt);
@@ -94,33 +143,59 @@ function Tool() {
         body: form,
       });
       const data = await res.json();
-      if (res.ok) {
-        const url = `${API}/download-video?filename=${data.filename}`;
-        setVideoUrl(url);
-        setHistory((prev) => [
-          { filename: data.filename, url, prompt_text: refined_prompt },
-          ...prev,
-        ]);
+
+      if (res.ok || res.status === 202) {
+        // Backend returns { task_id, video_id } and runs generation in bg
+        const taskId = data.task_id;
+        if (taskId) {
+          startPolling(taskId);
+        } else {
+          // Fallback for old API shape: { success, filename }
+          if (data.filename) {
+            const url = `${API}/download-video?filename=${data.filename}`;
+            setVideoUrl(url);
+            setHistory((prev) => [
+              { filename: data.filename, url, prompt_text: refined_prompt },
+              ...prev,
+            ]);
+          }
+          setLoading(false);
+        }
       } else {
         alert(data.error || "Generation failed");
+        setLoading(false);
       }
     } catch (err) {
       console.error(err);
       alert("Network error");
-    } finally {
       setLoading(false);
     }
   };
 
+  // ── Render ──────────────────────────────────────────────────────────────
   return (
     <div className="tool-layout">
-      <Nav />
+      <LinearNav />
       <ToolNav open={open} handleNav={handleNav} history={history} />
+
       <div className="tool-container fade-in">
-        <div className="tool-header-area" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+        <div
+          className="tool-header-area"
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
           <div>
-            <h2>Generate an <span style={{color: 'var(--accent)'}}>educational video</span></h2>
-            <p>Describe any topic and GyanAI will build an animated lesson with voiceover.</p>
+            <h2>
+              Generate an{" "}
+              <span style={{ color: "var(--accent)" }}>educational video</span>
+            </h2>
+            <p>
+              Describe any topic and GyanAI will build an animated lesson with
+              voiceover.
+            </p>
           </div>
           <button className="btn btn-secondary" onClick={handleNav}>
             View History
@@ -139,7 +214,7 @@ function Tool() {
         />
 
         {loading && (
-          <div className="card" style={{marginTop: '24px'}}>
+          <div className="card" style={{ marginTop: "24px" }}>
             <div className="progress-area">
               <div className="spinner" />
               <div className="badge badge-processing">Processing</div>
@@ -147,25 +222,33 @@ function Tool() {
                 {progress?.step || "Initializing generation…"}
               </p>
               <p className="progress-msg">
-                {progress?.message || "Setting up your video pipeline. This may take a few minutes."}
+                {progress?.message ||
+                  "Setting up your video pipeline. This may take a few minutes."}
               </p>
             </div>
-            {/* Skeletons to show it's working */}
-            <div style={{marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '8px'}}>
-               <div className="skeleton" style={{height: '16px', width: '100%'}}></div>
-               <div className="skeleton" style={{height: '16px', width: '80%'}}></div>
-               <div className="skeleton" style={{height: '16px', width: '90%'}}></div>
+            <div
+              style={{
+                marginTop: "24px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "8px",
+              }}
+            >
+              <div className="skeleton" style={{ height: "16px", width: "100%" }} />
+              <div className="skeleton" style={{ height: "16px", width: "80%" }} />
+              <div className="skeleton" style={{ height: "16px", width: "90%" }} />
             </div>
           </div>
         )}
 
         {videoUrl && !loading && (
-          <div style={{marginTop: '24px'}}>
+          <div style={{ marginTop: "24px" }}>
             <VideoBox videoUrl={videoUrl} />
           </div>
         )}
       </div>
-      <Footer />
+
+      <LinearFooter />
     </div>
   );
 }
