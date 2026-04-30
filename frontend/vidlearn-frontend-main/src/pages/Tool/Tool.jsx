@@ -4,6 +4,7 @@ import PromptBox from "./components/PromptBox";
 import VideoBox from "./components/VideoBox";
 import LinearNav from "../Home/components/LinearNav";
 import LinearFooter from "../Home/components/LinearFooter";
+import "./Tool.css";
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -16,20 +17,25 @@ function Tool() {
   const [history, setHistory] = useState([]);
   const [timeValue, setTimeValue] = useState(1);
   const [progress, setProgress] = useState(null);
+  const [authChecked, setAuthChecked] = useState(false);
 
   // Refs for the active task being polled
   const taskIdRef = useRef(null);
   const pollIntervalRef = useRef(null);
 
-  // ── Fetch history on mount ──────────────────────────────────────────────
+  // ── Auth guard + fetch history on mount ────────────────────────────────
   useEffect(() => {
     fetch(`${API}/history`, { credentials: "include" })
       .then((res) => {
-        if (res.status === 401) return { videos: [] }; // not logged in
+        if (res.status === 401) {
+          window.location.href = "/login";
+          return null;
+        }
         return res.json();
       })
       .then((data) => {
-        // Backend returns { videos: [...], total, page, pages }
+        if (!data) return;
+        setAuthChecked(true);
         const videos = data.videos || data || [];
         setHistory(
           videos.map((v) => ({
@@ -38,7 +44,10 @@ function Tool() {
           }))
         );
       })
-      .catch(console.error);
+      .catch(() => {
+        // Network error — show the page anyway, endpoints will handle auth
+        setAuthChecked(true);
+      });
   }, []);
 
   // ── Cleanup poll on unmount ─────────────────────────────────────────────
@@ -79,7 +88,11 @@ function Tool() {
         } else if (data.state === "failed") {
           clearInterval(pollIntervalRef.current);
           pollIntervalRef.current = null;
-          alert(data.message || "Video generation failed.");
+          const msg = data.message || "Video generation failed.";
+          const display = msg.includes("RESOURCE_EXHAUSTED") || msg.includes("quota")
+            ? "API quota exceeded. The team needs to refresh the Gemini API key."
+            : msg.length > 200 ? "Generation failed. Check backend logs." : msg;
+          alert(display);
           setLoading(false);
         }
       } catch {
@@ -144,6 +157,11 @@ function Tool() {
       });
       const data = await res.json();
 
+      if (res.status === 401) {
+        window.location.href = "/login";
+        return;
+      }
+
       if (res.ok || res.status === 202) {
         // Backend returns { task_id, video_id } and runs generation in bg
         const taskId = data.task_id;
@@ -173,6 +191,14 @@ function Tool() {
   };
 
   // ── Render ──────────────────────────────────────────────────────────────
+  if (!authChecked) {
+    return (
+      <div className="tool-loading-screen">
+        <div className="tool-spinner" />
+      </div>
+    );
+  }
+
   return (
     <div className="tool-layout">
       <LinearNav />

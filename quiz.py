@@ -14,7 +14,7 @@ def generate_quiz(script):
     try:
         full_text = "\n".join([s['voice_script'] for s in script])
         response = _client.models.generate_content(
-            model="gemini-2.0-flash",
+            model="gemini-2.5-flash",
             contents=quiz_system_prompt + "\n\nScript:\n" + full_text,
         )
         text = response.text
