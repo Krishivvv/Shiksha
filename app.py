@@ -59,7 +59,7 @@ def _rate_limit_key():
         return f"user:{current_user.id}"
     return get_remote_address()
 
-limiter = Limiter(app=app, key_func=_rate_limit_key, default_limits=[])
+limiter = Limiter(app=app, key_func=_rate_limit_key, default_limits=[], storage_uri=os.getenv("REDIS_URL"))
 
 
 # ── Flask-Login ────────────────────────────────────────────────────────────────
