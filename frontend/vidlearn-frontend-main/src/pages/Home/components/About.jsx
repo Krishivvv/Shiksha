@@ -1,6 +1,6 @@
 import React from "react";
-
 import AboutText from "./AboutText";
+import HowItWorks from "./HowItWorks";
 import Gallery from "./Gallery";
 
 function About() {
@@ -8,6 +8,7 @@ function About() {
     <div className="container">
       <div className="about">
         <AboutText />
+        <HowItWorks />
         <Gallery />
       </div>
     </div>

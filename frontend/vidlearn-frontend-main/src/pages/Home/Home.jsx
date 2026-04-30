@@ -1,5 +1,4 @@
 import React from "react";
-
 import Header from "./components/Header";
 import About from "./components/About";
 import Footer from "../../components/Footer";
@@ -9,13 +8,14 @@ function Home() {
   return (
     <div className="container-wrapper">
       <Header>
+        <div className="hero-badge">Oriental Hack 2025 · Tech Titans</div>
         <h1 className="fancy-font">
-          Effortless creation of educational videos with AI
+          Type a topic.<br />
+          <span className="gradient-text">Get a full lesson.</span>
         </h1>
-        <br />
-        <p>
-          Simply provide a topic and let GyanAI create an animated video with
-          stunning visuals.
+        <p className="hero-subtitle">
+          GyanAI writes the script, draws every frame, narrates it, and quizzes
+          you at the end — all from one sentence. No slides. No editing. Just learn.
         </p>
       </Header>
       <About />

@@ -1,22 +1,25 @@
 import React from "react";
-
-import Button from "../../../components/Button";
-import Video from "../components/Video";
-import Nav from "../components/Nav";
+import Video from "./Video";
+import Nav from "./Nav";
 
 function Header({ children }) {
   return (
     <div className="container">
-      <div className="nav">
-        <Nav></Nav>
-      </div>
+      <Nav />
       <div className="header-home">
         <div className="col col-left">
-          <div>{children}</div>
-          <Button text="Try It" link={"signup"} />
+          {children}
+          <div className="hero-cta">
+            <a href="/signup">
+              <button className="btn primary">Start Creating →</button>
+            </a>
+            <a href="/login">
+              <button className="btn">Log In</button>
+            </a>
+          </div>
         </div>
         <div className="col">
-          <Video></Video>
+          <Video />
         </div>
       </div>
     </div>

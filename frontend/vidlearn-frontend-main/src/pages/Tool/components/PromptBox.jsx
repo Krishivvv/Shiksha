@@ -8,17 +8,19 @@ function PromptBox({
   loading,
   timeValue,
   handleSliderChange,
+  file,
 }) {
   const inputRef = useRef(null);
-  const ref = useRef();
+  const textareaRef = useRef(null);
 
-  const adjust = () => {
-    const el = ref.current;
+  const adjustHeight = () => {
+    const el = textareaRef.current;
+    if (!el) return;
     el.style.height = "auto";
     el.style.height = el.scrollHeight + "px";
   };
 
-  useEffect(adjust, []);
+  useEffect(adjustHeight, []);
 
   const handleDrop = (e) => {
     e.preventDefault();
@@ -27,44 +29,43 @@ function PromptBox({
     }
   };
 
-  const handleClick = () => {
-    inputRef.current.click();
-  };
-
   return (
-    <div className="prompt-box tool-row">
-      <h3 className="row">What educational concept would you like to learn?</h3>
+    <div className="prompt-box">
+      <p className="prompt-label">What would you like to learn?</p>
+
       <textarea
         value={prompt}
         onChange={handleChange}
-        placeholder="Explain Thermodynamics First Law"
-        rows="5"
-        onInput={adjust}
-        ref={ref}
+        placeholder="e.g. Explain the First Law of Thermodynamics with visual examples"
+        rows="3"
+        onInput={adjustHeight}
+        ref={textareaRef}
       />
 
-      <div className="row">
-        <label htmlFor="time-slider">Video Length: {timeValue} mins</label>
+      <div className="slider-group">
+        <div className="slider-row">
+          <span>Video length</span>
+          <span className="slider-value">{timeValue} min{timeValue > 1 ? "s" : ""}</span>
+        </div>
         <input
           type="range"
-          id="time-slider"
+          className="slider"
           min="1"
           max="10"
           step="1"
           value={timeValue}
           onChange={handleSliderChange}
-          className="slider"
         />
       </div>
 
-      <div className="row">
+      <div className="prompt-actions">
         <div
-          className="upload-box"
-          onClick={handleClick}
+          className={`upload-box ${file ? "has-file" : ""}`}
+          onClick={() => inputRef.current.click()}
           onDragOver={(e) => e.preventDefault()}
           onDrop={handleDrop}
         >
-          Drop a PDF or click to browse
+          {file ? `📄 ${file.name}` : "Drop a PDF or click to browse"}
           <input
             type="file"
             accept=".pdf,.doc,.docx"
@@ -73,12 +74,13 @@ function PromptBox({
             style={{ display: "none" }}
           />
         </div>
+
         <button
           className="submit-btn"
           onClick={handleSubmit}
           disabled={loading}
         >
-          {loading ? "Generating..." : "Generate Video"}
+          {loading ? "Generating…" : "Generate Video"}
         </button>
       </div>
     </div>
