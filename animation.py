@@ -39,7 +39,7 @@ else:
     )
 
 
-async def record_animation(html_path, segment_id, duration):
+async def record_animation(html_path, segment_id, duration, segments_folder="segments"):
    #CHROME_PATH = "C:/Program Files/Google/Chrome/Application/chrome.exe"
 
     browser = await safe_launch(
@@ -137,8 +137,8 @@ async def record_animation(html_path, segment_id, duration):
         base64_str = await page.evaluate("window.blobBase64")
         video_data = base64.b64decode(base64_str)
 
-        out_path = Path("segments") / f"{segment_id}.webm"
-        out_path.parent.mkdir(exist_ok=True)
+        out_path = Path(segments_folder) / f"{segment_id}.webm"
+        out_path.parent.mkdir(parents=True, exist_ok=True)
         out_path.write_bytes(video_data)
         print(f"✅ Video saved to {out_path}")
 

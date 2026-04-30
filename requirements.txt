@@ -1,12 +1,12 @@
-openai
-anthropic
+google-generativeai
+edge-tts
 jinja2
 pyppeteer
-google-generativeai
 redis
 python-dotenv
 flask-cors
 Flask-SQLAlchemy
 Flask-Migrate
 Flask-Login
+Flask-Limiter
 fpdf

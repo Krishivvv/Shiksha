@@ -26,9 +26,7 @@ def run_async_safely(coroutine):
 
 def clear_folder(folder_path):
     folder = Path(folder_path)
-    if not folder.exists():
-        print(f"⚠️ Folder '{folder}' does not exist.")
-        return
+    folder.mkdir(parents=True, exist_ok=True)
 
     for item in folder.iterdir():
         try:

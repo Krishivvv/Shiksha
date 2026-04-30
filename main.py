@@ -1,93 +1,103 @@
 import os
 import json
 import asyncio
+import logging
+import subprocess
 from pathlib import Path
 from jinja2 import Template
 import tempfile
-import anthropic
-from openai import OpenAI
+import shutil
+import google.generativeai as genai
+import edge_tts
 from dotenv import load_dotenv
 from werkzeug.utils import secure_filename
-import shutil
+
 from prompts import script_system_prompt, animation_system_prompt, pdf_system_prompt
 from video import merge_with_ffmpeg, merge_videos
 from animation import generate_html, record_animation
 from helper import safe_launch, clear_folder, run_async_safely
-from progress import set_progress  # using our shared progress module
-import shutil
-
+from progress import set_progress
 from pdf import extract_last_frame, generate_pdf
 
 load_dotenv()
 
-# API keys from env variables
-openai_api = os.getenv("OPENAI_API_KEY")
+logger = logging.getLogger(__name__)
 
-client = OpenAI(api_key=openai_api)
+genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
-if os.name == "nt":  # Windows
+if os.name == "nt":
     possible_paths = [
         os.getenv("CHROME_PATH"),
         shutil.which("chrome"),
         r"C:\Program Files\Google\Chrome\Application\chrome.exe",
-        r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"
+        r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
     ]
-    # Select the first path that is not None and exists on disk.
-    CHROME_PATH = next((p for p in possible_paths if p and os.path.exists(p)), None)
-    if not CHROME_PATH:
-        # Fallback: assume "chrome" is in the PATH.
-        CHROME_PATH = "chrome"
+    CHROME_PATH = next((p for p in possible_paths if p and os.path.exists(p)), None) or "chrome"
 else:
-    # Linux / Unix. Try the common binary names or a default location.
     CHROME_PATH = (
-        os.getenv("CHROME_PATH") or
-        shutil.which("google-chrome-stable") or
-        shutil.which("google-chrome") or
-        shutil.which("chromium-browser") or
-        shutil.which("chromium") or
-        shutil.which("chrome") or
-        "/usr/bin/google-chrome"
+        os.getenv("CHROME_PATH")
+        or shutil.which("google-chrome-stable")
+        or shutil.which("google-chrome")
+        or shutil.which("chromium-browser")
+        or shutil.which("chromium")
+        or shutil.which("chrome")
+        or "/usr/bin/google-chrome-stable"
     )
 
-print("Using Chrome path:", CHROME_PATH)
+logger.info("Using Chrome path: %s", CHROME_PATH)
 
 
+# ── LLM ──────────────────────────────────────────────────────────────────────
 
-# <--------------------------------------------Generation Section-------------------------------------------->
+def generate_response(msg_history, model="gemini-2.0-flash"):
+    """Convert OpenAI-style message history and call Gemini."""
+    messages = msg_history[:]
+    system_instruction = None
+
+    if messages and messages[0]["role"] == "system":
+        system_instruction = messages[0]["content"]
+        messages = messages[1:]
+
+    def _to_gemini_role(role):
+        return "user" if role == "user" else "model"
+
+    history = [
+        {"role": _to_gemini_role(m["role"]), "parts": [m["content"]]}
+        for m in messages[:-1]
+    ]
+    last_content = messages[-1]["content"]
+
+    model_obj = genai.GenerativeModel(model, system_instruction=system_instruction)
+    chat = model_obj.start_chat(history=history)
+    response = chat.send_message(last_content)
+    return response.text
 
 
+# ── TTS ───────────────────────────────────────────────────────────────────────
 
-def generate_response(msg_history, model = "gpt-4o"):
-    response = client.chat.completions.create(
-        model=model,
-        messages=msg_history
-    )
-    return response.choices[0].message.content
+async def _tts_async(save_file_path, script):
+    communicate = edge_tts.Communicate(script, voice="en-US-AriaNeural")
+    await communicate.save(save_file_path)
+
 
 def generate_voice(save_file_path, script):
-    with client.audio.speech.with_streaming_response.create(
-        model="gpt-4o-mini-tts",
-        voice="alloy",
-        input=script
-    ) as response:
-        response.stream_to_file(save_file_path)
+    run_async_safely(_tts_async(save_file_path, script))
 
 
-
-# <--------------------------------------------Cleaning Section-------------------------------------------->
+# ── Utilities ─────────────────────────────────────────────────────────────────
 
 def safe_text(text):
     return text.encode("utf-8", errors="replace").decode("utf-8")
 
 
 def extract_code_from_response(content):
-    # Assuming content is a string or an iterable of blocks:
     if isinstance(content, str):
         return content
     for block in content:
         if hasattr(block, 'type') and block.type == 'text':
             return block.text
     return None
+
 
 def safe_parse_json(gpt_output):
     try:
@@ -97,49 +107,41 @@ def safe_parse_json(gpt_output):
             gpt_output = gpt_output.strip()[3:-3].strip()
         return json.loads(gpt_output)
     except json.JSONDecodeError as e:
-        print("❌ JSON parsing failed:", e)
+        logger.error("JSON parsing failed: %s", e)
         return None
 
 
+# ── Animation ─────────────────────────────────────────────────────────────────
 
-# <--------------------------------------------Animation Section-------------------------------------------->
-
-
-
-def generate_valid_animation_code(prompt, max_attempts=3):
+def generate_valid_animation_code(prompt, max_attempts=3, task_id="global"):
     past_error = ""
     msg_history = [
-            {"role": "system", "content": animation_system_prompt},
-            {"role": "user", "content": prompt}
-        ]
+        {"role": "system", "content": animation_system_prompt},
+        {"role": "user", "content": prompt},
+    ]
     for attempt in range(1, max_attempts + 1):
-        print(f" Generating animation code (attempt {attempt})...")
-        set_progress({"step": f"Generating animation code (attempt {attempt})", "message": prompt})
-        clean_code = generate_response(msg_history, model = "o4-mini-2025-04-16")
-        # print("Generated code:", clean_code)  # Log the generated code
+        logger.info("Generating animation code (attempt %d)", attempt)
+        set_progress({"state": "processing", "step": f"Generating animation (attempt {attempt})", "message": prompt}, user_id=task_id)
+        clean_code = generate_response(msg_history)
         try:
             is_valid, logs = run_async_safely(validate_code_in_browser(clean_code))
-            print("Validation logs:", logs)  # Log any validation messages
-            past_error = "\n".join(logs) if logs and isinstance(logs, list) else str(logs)
-            print("error: ", past_error)
+            past_error = "\n".join(logs) if isinstance(logs, list) else str(logs)
         except Exception as e:
-            print(f"⚠️ Validation failed: {e}")
+            logger.warning("Validation error: %s", e)
             is_valid = False
 
         if is_valid:
-            print("✅ Valid animation code generated.")
+            logger.info("Valid animation code generated on attempt %d", attempt)
             return clean_code
         else:
-            msg_history.append({"role": "system", "content":clean_code})
-            msg_history.append({"role":"user", "content":f"the code isnt working and has error: {past_error}. try again to make animation {prompt}"})
-            print("❌ Code invalid or has JS errors. Retrying...")
-            # print(clean_code)
-    # Instead of stopping all generation, we now raise an error that will be caught outside.
-    raise RuntimeError("❌ All attempts to generate valid animation code failed.")
+            msg_history.append({"role": "system", "content": clean_code})
+            msg_history.append({"role": "user", "content": f"The code has an error: {past_error}. Fix it and regenerate the animation: {prompt}"})
+            logger.warning("Animation code invalid, retrying...")
+
+    raise RuntimeError("All attempts to generate valid animation code failed.")
 
 
 async def validate_code_in_browser(js_code):
-    # HTML template that loads p5.js and tries to run the animation code
     html_template = """
     <html>
       <head>
@@ -174,7 +176,7 @@ async def validate_code_in_browser(js_code):
         await page.goto(f"file://{html_path}")
         await asyncio.sleep(3)
         success = await page.evaluate("window.__animationLoaded === true")
-    except Exception as e:
+    except Exception:
         success = False
     finally:
         await browser.close()
@@ -182,147 +184,115 @@ async def validate_code_in_browser(js_code):
     return (success and not has_js_error, logs)
 
 
-# <--------------------------------------------Vid Generation Section-------------------------------------------->
+# ── Placeholder video ─────────────────────────────────────────────────────────
 
-
-def generate_placeholder_video(segment_id, duration):
-    placeholder_video_path = f"segments/{segment_id}.webm"
-    cmd = (
-        f"ffmpeg -y -f lavfi -i color=c=black:s=1280x720:d={duration} "
-        f"-c:v libvpx -crf 10 -b:v 1M {placeholder_video_path}"
-    )
-    os.system(cmd)
-    print(f"Placeholder video created for segment {segment_id} with duration {duration}s.")
-
-def generate_video(user_prompt, output_filename, username):
+def generate_placeholder_video(segment_id, duration, seg_folder):
+    placeholder_path = f"{seg_folder}/{segment_id}.webm"
+    os.makedirs(seg_folder, exist_ok=True)
     try:
-        # Update progress: initialize and clear folders.
-        set_progress({"step": "Initializing", "message": "Clearing folders and starting generation"}, user_id="global")
-        clear_folder("final_videos")
-        clear_folder("segments")
-        clear_folder("voice")
-        clear_folder("pdf_images")
-
-        msg_history_script = [
-            {"role": "system", "content": script_system_prompt},
-            {"role": "user", "content": user_prompt}
-        ]
-
-        # Generate video script from the prompt.
-        set_progress({"step": "Generating script", "message": "Using prompt to generate the video script"}, user_id="global")
-        script = generate_response(msg_history_script)
-        script = safe_parse_json(script)
-        if not script:
-            raise RuntimeError("Script generation returned invalid JSON")
-        with open('scripts.json', 'w') as f:
-            json.dump(script, f)
-
-        set_progress({"step": "Script generated", "message": "Proceeding to segment processing"}, user_id="global")
-
-        notes_list = [] #used for making pdf notes at end
-
-        # Process each segment.
-        for segment in script:
-            segment_id = segment["id"]
-            voiceover = segment["voice_script"]
-            animation = segment["animation"]
-            duration = segment["duration"]
-
-            set_progress({"step": f"Processing segment {segment_id}", "message": "Generating animation code"}, user_id="global")
-            animation_prompt = f"{animation} to last at least {duration} seconds. The voiceover for this is {voiceover}"
-            try:
-                animation_code = generate_valid_animation_code(animation_prompt)
-            except RuntimeError as e:
-                print(f"⚠️ Warning: Animation code generation for segment {segment_id} failed: {e}")
-                set_progress({"step": f"Error in segment {segment_id}", "message": "Failed to generate animation code, using placeholder video"}, user_id="global")
-                animation_code = None
-
-            if animation_code is not None:
-                html_path = generate_html(animation_code)
-                set_progress({"step": f"Recording animation for segment {segment_id}", "message": "Capturing animation with headless browser"}, user_id="global")
-                try:
-                    run_async_safely(record_animation(html_path, segment_id, duration))
-                except Exception as e:
-                    err_str = str(e)
-                    if "Timed out waiting for blob base64" in err_str or "Waiting for selector" in err_str:
-                        set_progress({"step": f"Timeout for segment {segment_id}", "message": "Using placeholder video"}, user_id="global")
-                        print(f"⚠️ Warning: Animation for segment {segment_id} timed out. Generating placeholder video...")
-                        generate_placeholder_video(segment_id, duration)
-                    else:
-                        set_progress({"step": f"Error in recording segment {segment_id}", "message": str(e)}, user_id="global")
-                        print(f"⚠️ Warning: Error encountered during recording of segment {segment_id}. Using placeholder video instead.")
-                        generate_placeholder_video(segment_id, duration)
-            else:
-                set_progress({"step": f"Using placeholder for segment {segment_id}", "message": "No valid animation code generated."}, user_id="global")
-                generate_placeholder_video(segment_id, duration)
-
-            set_progress({"step": f"Generating voiceover for segment {segment_id}", "message": "Synthesizing voice"}, user_id="global")
-            generate_voice(f"voice/{segment_id}.mp3", voiceover)
-
-            set_progress({"step": f"Merging segment {segment_id}", "message": "Merging voiceover and animation"}, user_id="global")
-            merge_with_ffmpeg(f"segments/{segment_id}.webm", f"voice/{segment_id}.mp3", f"final_videos/{segment_id}.mp4")
-            print("Done with segment:", segment_id)
-
-            # <--------------------------------------------PDF Generation Section-------------------------------------------->
-            msg_history_pdf = [
-                {"role": "system", "content": pdf_system_prompt},
-                {"role":"user", "content":voiceover}
-            ]
-            pdf_content = generate_response(msg_history_pdf)
-            pdf_content = safe_text(pdf_content)
-            segment_img_path = extract_last_frame(f"segments/{segment_id}.webm" , f"pdf_images/{segment_id}.png")
-
-            notes_list.append({"id":segment_id , "notes":pdf_content , "image_path":segment_img_path})
-
-            print(f"PDF segment:{segment_id} added to notes_list")
-
-        set_progress({"step": "Merging final video", "message": "Merging all segments into one video"}, user_id="global")
-        # Save the final video to a user-specific folder.
-        user_output_folder = os.path.join("output", f"{username}_output")
-        os.makedirs(user_output_folder, exist_ok=True)
-        final_output_path = os.path.join(user_output_folder, output_filename)
-        merge_videos("final_videos", final_output_path)
-        
-        pdf_filename = os.path.join(user_output_folder, "notes.pdf")
-        if os.path.exists(pdf_filename): os.remove(pdf_filename)
-        generate_pdf(notes_list, pdf_filename) # PDF Generation
-        print("PDF made")
-
-        set_progress({"step": "Completed", "message": "Video generation completed"}, user_id="global")
-        return True
-
-    except Exception as e:
-        set_progress({"step": "Error", "message": str(e)}, user_id="global")
-        raise
+        subprocess.run(
+            [
+                "ffmpeg", "-y", "-f", "lavfi",
+                "-i", f"color=c=black:s=1280x720:d={duration}",
+                "-c:v", "libvpx", "-crf", "10", "-b:v", "1M",
+                placeholder_path,
+            ],
+            check=True,
+            capture_output=True,
+        )
+        logger.info("Placeholder video created for segment %s", segment_id)
+    except subprocess.CalledProcessError as e:
+        logger.error("Failed to create placeholder video: %s", e.stderr.decode(errors="replace"))
 
 
-if __name__ == "__main__":
-    # user_prompt = "explain thermodynamics in short minimum duration of video: 15 seconds"
-    # filename_base = "_".join(user_prompt.split()[:10])
-    # raw_filename = f"{filename_base}.mp4"
-    # computed_filename = secure_filename(raw_filename)
-    # generate_video(user_prompt, computed_filename, username="dev")
-    with open("scripts.json") as f:
-        script = json.load(f)
+# ── Main pipeline ─────────────────────────────────────────────────────────────
+
+def generate_video(user_prompt, output_filename, username, task_id="global"):
+    """Generate a full educational video. Returns (success: bool, script: list)."""
+
+    seg_folder   = f"segments/{username}"
+    voice_folder = f"voice/{username}"
+    final_folder = f"final_videos/{username}"
+    pdf_folder   = f"pdf_images/{username}"
+
+    set_progress({"state": "processing", "step": "Initializing", "message": "Clearing folders"}, user_id=task_id)
+    clear_folder(seg_folder)
+    clear_folder(voice_folder)
+    clear_folder(final_folder)
+    clear_folder(pdf_folder)
+
+    msg_history_script = [
+        {"role": "system", "content": script_system_prompt},
+        {"role": "user", "content": user_prompt},
+    ]
+    set_progress({"state": "processing", "step": "Generating script", "message": user_prompt}, user_id=task_id)
+    script = generate_response(msg_history_script)
+    script = safe_parse_json(script)
+    if not script:
+        raise RuntimeError("Script generation returned invalid JSON")
 
     notes_list = []
+
     for segment in script:
         segment_id = segment["id"]
-        voiceover = segment["voice_script"]
+        voiceover  = segment["voice_script"]
+        animation  = segment["animation"]
+        duration   = segment["duration"]
+
+        set_progress({"state": "processing", "step": f"Processing {segment_id}", "message": "Generating animation"}, user_id=task_id)
+        animation_prompt = f"{animation} to last at least {duration} seconds. The voiceover for this is {voiceover}"
+
+        try:
+            animation_code = generate_valid_animation_code(animation_prompt, task_id=task_id)
+        except RuntimeError as e:
+            logger.warning("Animation code failed for %s: %s — using placeholder", segment_id, e)
+            animation_code = None
+
+        if animation_code is not None:
+            html_path = generate_html(animation_code)
+            set_progress({"state": "processing", "step": f"Recording {segment_id}", "message": "Capturing animation"}, user_id=task_id)
+            try:
+                run_async_safely(record_animation(html_path, segment_id, duration, segments_folder=seg_folder))
+            except Exception as e:
+                logger.warning("Recording failed for %s: %s — using placeholder", segment_id, e)
+                generate_placeholder_video(segment_id, duration, seg_folder)
+        else:
+            generate_placeholder_video(segment_id, duration, seg_folder)
+
+        set_progress({"state": "processing", "step": f"Voiceover for {segment_id}", "message": "Synthesising voice"}, user_id=task_id)
+        generate_voice(f"{voice_folder}/{segment_id}.mp3", voiceover)
+
+        set_progress({"state": "processing", "step": f"Merging {segment_id}", "message": "Combining audio and video"}, user_id=task_id)
+        merge_with_ffmpeg(
+            f"{seg_folder}/{segment_id}.webm",
+            f"{voice_folder}/{segment_id}.mp3",
+            f"{final_folder}/{segment_id}.mp4",
+        )
+        logger.info("Segment %s complete", segment_id)
 
         msg_history_pdf = [
-                {"role": "system", "content": pdf_system_prompt},
-                {"role":"user", "content":voiceover}
-            ]
+            {"role": "system", "content": pdf_system_prompt},
+            {"role": "user", "content": voiceover},
+        ]
+        pdf_content = safe_text(generate_response(msg_history_pdf))
+        segment_img = extract_last_frame(
+            f"{seg_folder}/{segment_id}.webm",
+            f"{pdf_folder}/{segment_id}.png",
+        )
+        notes_list.append({"id": segment_id, "notes": pdf_content, "image_path": segment_img})
 
-        pdf_content = generate_response(msg_history_pdf)
-        pdf_content = safe_text(pdf_content)
+    set_progress({"state": "processing", "step": "Merging final video", "message": "Combining all segments"}, user_id=task_id)
 
-        segment_img_path = f"pdf_images/{segment_id}.png"
+    user_output_folder = os.path.join("output", f"{username}_output")
+    os.makedirs(user_output_folder, exist_ok=True)
+    final_output_path = os.path.join(user_output_folder, output_filename)
+    merge_videos(final_folder, final_output_path)
 
-        notes_list.append({"id":segment_id , "notes":pdf_content , "image_path":segment_img_path})
+    pdf_filename = os.path.join(user_output_folder, "notes.pdf")
+    if os.path.exists(pdf_filename):
+        os.remove(pdf_filename)
+    generate_pdf(notes_list, pdf_filename)
+    logger.info("PDF notes generated")
 
-        print(f"PDF segment:{segment_id} added to notes_list")
-
-    generate_pdf(notes_list) # PDF Generation
-    print("PDF made")
+    set_progress({"state": "processing", "step": "Completed", "message": "Video ready"}, user_id=task_id)
+    return True, script
