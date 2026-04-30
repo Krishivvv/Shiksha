@@ -51,7 +51,7 @@ logger.info("Using Chrome path: %s", CHROME_PATH)
 
 # ── LLM ──────────────────────────────────────────────────────────────────────
 
-def generate_response(msg_history, model="gemini-2.0-flash"):
+def generate_response(msg_history, model="gemini-2.5-flash"):
     """Convert OpenAI-style message history and call Gemini."""
     messages = msg_history[:]
     system_instruction = None

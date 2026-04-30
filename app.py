@@ -59,7 +59,18 @@ def _rate_limit_key():
         return f"user:{current_user.id}"
     return get_remote_address()
 
-limiter = Limiter(app=app, key_func=_rate_limit_key, default_limits=[], storage_uri=os.getenv("REDIS_URL"))
+def _resolve_storage():
+    redis_url = os.getenv("REDIS_URL")
+    if redis_url:
+        try:
+            import redis as _redis
+            _redis.from_url(redis_url).ping()
+            return redis_url
+        except Exception:
+            logger.warning("Redis unavailable (%s), falling back to in-memory rate limiter", redis_url)
+    return "memory://"
+
+limiter = Limiter(app=app, key_func=_rate_limit_key, default_limits=[], storage_uri=_resolve_storage())
 
 
 # ── Flask-Login ────────────────────────────────────────────────────────────────
@@ -70,6 +81,10 @@ login_manager.login_view = "login"
 @login_manager.user_loader
 def load_user(user_id):
     return db.session.get(User, int(user_id))
+
+@login_manager.unauthorized_handler
+def unauthorized():
+    return jsonify({"error": "Authentication required. Please log in."}), 401
 
 
 with app.app_context():
