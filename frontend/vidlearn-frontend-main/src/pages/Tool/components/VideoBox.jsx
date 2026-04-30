@@ -1,24 +1,28 @@
 import React from "react";
+import { MdDownload } from "react-icons/md";
 
 const API = import.meta.env.VITE_API_URL;
 
 function VideoBox({ videoUrl }) {
   return (
-    <div className="video-box tool-row">
-      <video src={videoUrl} controls className="w-full rounded-lg shadow-md" />
-      <div className="row mt-2 space-x-2">
-        {/* Video download */}
-        <a href={videoUrl} download>
-          <button className="submit-btn">Download Video</button>
-        </a>
+    <div className="video-box">
+      <p className="video-box-title">Your Generated Video</p>
 
-        {/* PDF download */}
+      <video src={videoUrl} controls className="video-result" />
+
+      <div className="video-actions">
+        <a href={videoUrl} download className="download-btn">
+          <MdDownload />
+          Download Video
+        </a>
         <a
           href={`${API}/download-pdf`}
           target="_blank"
           rel="noopener noreferrer"
+          className="download-btn"
         >
-          <button className="submit-btn">Download PDF</button>
+          <MdDownload />
+          Download Study Notes (PDF)
         </a>
       </div>
     </div>

@@ -1,9 +1,9 @@
 import React from "react";
 
-function ToolVideo({ vid }) {
+function ToolVideo({ vid, prompt }) {
   return (
-    <div>
-      <video className="video-tool" src={vid} controls />
+    <div className="history-item">
+      <video src={vid} controls preload="metadata" />
     </div>
   );
 }

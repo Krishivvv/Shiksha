@@ -1,8 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Login.css";
-
-import Footer from "../../components/Footer";
 import Logo from "../../components/Logo";
 
 const API = import.meta.env.VITE_API_URL;
@@ -11,11 +9,13 @@ function Login() {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setLoading(true);
 
     try {
       const res = await fetch(`${API}/login`, {
@@ -33,60 +33,69 @@ function Login() {
       }
     } catch (err) {
       console.error(err);
-      setError("Network error, please try again");
+      setError("Network error — please try again");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="container-wrapper">
-      <div className="gyanai-logo">
-        <a href="/">
+    <div className="auth-page">
+      <div className="auth-card">
+        <a href="/" className="auth-logo">
           <Logo />
         </a>
-      </div>
 
-      <div className="container login">
-        <div className="illustration">
-          <img src="/loginVector.png" alt="" />
+        <div className="auth-heading">
+          <h2 className="auth-title">Welcome back</h2>
+          <p className="auth-subtitle">Sign in to your GyanAI account</p>
         </div>
-        <div className="login-form">
-          <form onSubmit={handleSubmit}>
-            <h2 className="login-title ">Welcome back</h2>
-            {error && <p className="error">{error}</p>}
-            <div className="form-row">
-              <label htmlFor="username">Username</label>
-              <input
-                type="text"
-                placeholder="Username or Email"
-                value={identifier}
-                onChange={(e) => setIdentifier(e.target.value)}
-                id="username"
-                required
-              />
-            </div>
-            <div className="form-row">
-              <label htmlFor="password">Password</label>
-              <input
-                type="password"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                id="password"
-                required
-              />
-            </div>
-            <button type="submit" className=" form-row login-btn">
-              Login
-            </button>
-            <div className="form-row">
-              <p>
-                Don't have an account yet? <a href="/signup">Sign Up</a>
-              </p>
-            </div>
-          </form>
-        </div>
+
+        {error && <div className="auth-error">{error}</div>}
+
+        <form className="auth-form" onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label className="form-label" htmlFor="username">
+              Username or Email
+            </label>
+            <input
+              className="form-input"
+              type="text"
+              id="username"
+              placeholder="you@example.com"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              required
+              autoComplete="username"
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label" htmlFor="password">
+              Password
+            </label>
+            <input
+              className="form-input"
+              type="password"
+              id="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              autoComplete="current-password"
+            />
+          </div>
+
+          <button type="submit" className="btn-auth" disabled={loading}>
+            {loading ? "Signing in…" : "Sign In"}
+          </button>
+        </form>
+
+        <p className="auth-footer-text">
+          Don't have an account?{" "}
+          <a href="/signup">Create one free</a>
+        </p>
       </div>
-      <Footer />
     </div>
   );
 }

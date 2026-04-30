@@ -3,22 +3,21 @@ import React from "react";
 function AboutText() {
   return (
     <div className="about-text">
-      <div className="about-col about-col-left fancy-font">
-        <h2>
-          At GyanAI, we harness AI to make high-quality education accessible,
-          visual, and interactive for every curious mind.
+      <div className="about-col">
+        <h2 className="fancy-font">
+          We got tired of boring study content. So we automated the good kind.
         </h2>
       </div>
       <div className="about-col">
         <p>
-          While no one can predict the full impact AI will have on education, we
-          believe its future should be shaped with intention, creativity, and
-          care. That's why we've built GyanAI — a tool that blends generative
-          AI, animation, and assessment to make complex ideas understandable,
-          accessible, and inspiring. <br /> <br />
-          Through thoughtful design, human-centered prompts, and a focus on
-          clarity, we aim to redefine how knowledge is created and shared in the
-          age of AI.
+          GyanAI started as a hackathon question: what if a student could type one
+          sentence and get back a full animated lesson? Three AI models, a headless
+          browser, and a few all-nighters later — it works.
+        </p>
+        <p>
+          GPT-4o writes the script. Gemini sharpens it. p5.js animates every
+          scene. OpenAI TTS narrates it. Gemini builds the quiz. FFmpeg assembles
+          the final video. You just type.
         </p>
       </div>
     </div>
