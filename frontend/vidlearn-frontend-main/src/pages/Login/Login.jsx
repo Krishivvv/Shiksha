@@ -1,7 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import "./Login.css";
-import Logo from "../../components/Logo";
+import { useNavigate, Link } from "react-router-dom";
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -40,26 +38,28 @@ function Login() {
   };
 
   return (
-    <div className="auth-page">
-      <div className="auth-card">
-        <a href="/" className="auth-logo">
-          <Logo />
-        </a>
-
-        <div className="auth-heading">
-          <h2 className="auth-title">Welcome back</h2>
-          <p className="auth-subtitle">Sign in to your GyanAI account</p>
+    <div className="auth-wrapper fade-in">
+      <div className="card auth-card">
+        <div style={{textAlign: 'center', marginBottom: '24px'}}>
+          <Link to="/" style={{display: 'inline-block'}}>
+            <svg width="40" height="40" viewBox="0 0 100 100">
+              <rect width="100" height="100" rx="20" fill="var(--accent)" />
+              <text x="50%" y="50%" fontFamily="Inter, sans-serif" fontWeight="bold" fontSize="60" fill="white" textAnchor="middle" dy=".35em">G</text>
+            </svg>
+          </Link>
         </div>
 
-        {error && <div className="auth-error">{error}</div>}
+        <h2 className="auth-title">Welcome back</h2>
+
+        {error && <div className="badge badge-error" style={{marginBottom: '16px', width: '100%', justifyContent: 'center'}}>{error}</div>}
 
         <form className="auth-form" onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label className="form-label" htmlFor="username">
+          <div>
+            <label className="label-caps" style={{display: 'block', marginBottom: '8px'}} htmlFor="username">
               Username or Email
             </label>
             <input
-              className="form-input"
+              className="input-field"
               type="text"
               id="username"
               placeholder="you@example.com"
@@ -70,12 +70,12 @@ function Login() {
             />
           </div>
 
-          <div className="form-group">
-            <label className="form-label" htmlFor="password">
+          <div>
+            <label className="label-caps" style={{display: 'block', marginBottom: '8px'}} htmlFor="password">
               Password
             </label>
             <input
-              className="form-input"
+              className="input-field"
               type="password"
               id="password"
               placeholder="••••••••"
@@ -86,15 +86,15 @@ function Login() {
             />
           </div>
 
-          <button type="submit" className="btn-auth" disabled={loading}>
+          <button type="submit" className="btn btn-primary" style={{marginTop: '8px'}} disabled={loading}>
             {loading ? "Signing in…" : "Sign In"}
           </button>
         </form>
 
-        <p className="auth-footer-text">
+        <div className="auth-footer">
           Don't have an account?{" "}
-          <a href="/signup">Create one free</a>
-        </p>
+          <Link to="/signup" className="auth-link">Create one free</Link>
+        </div>
       </div>
     </div>
   );

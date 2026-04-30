@@ -1,29 +1,114 @@
 import React from "react";
 
-const steps = [
-  { n: "01", title: "You type a prompt", detail: "Any topic, any depth. One sentence is enough." },
-  { n: "02", title: "AI builds the script", detail: "GPT-4o drafts it. Claude refines it. Kept under 10 minutes." },
-  { n: "03", title: "p5.js draws every frame", detail: "Custom animations render in a headless browser. No stock footage." },
-  { n: "04", title: "Watch & test yourself", detail: "Narrated video drops. Gemini quiz follows. You're done." },
-];
-
 function HowItWorks() {
+  const steps = [
+    {
+      num: 1,
+      title: "Input Context",
+      desc: "Provide a simple text prompt or upload a detailed PDF document. GyanAI's LLM instantly comprehends the material."
+    },
+    {
+      num: 2,
+      title: "Generative Processing",
+      desc: "The system simultaneously writes the script, generates p5.js animation code, and synthesizes a human voiceover."
+    },
+    {
+      num: 3,
+      title: "Export & Learn",
+      desc: "Download the fully rendered MP4 video, the extracted PDF study notes, and take the automated quiz."
+    }
+  ];
+
   return (
-    <div className="how-section">
-      <p className="section-label">How it works</p>
-      <div className="how-steps">
-        {steps.map((s, i) => (
-          <React.Fragment key={s.n}>
-            <div className="how-step">
-              <span className="how-n">{s.n}</span>
-              <p className="how-title">{s.title}</p>
-              <p className="how-detail">{s.detail}</p>
+    <section id="how-it-works" style={{
+      padding: '100px 0',
+      borderTop: '1px solid rgba(255,255,255,0.06)',
+      textAlign: 'center'
+    }}>
+      <div className="section-container">
+        <h2 className="animate" style={{
+          fontSize: 'clamp(28px, 3.5vw, 40px)',
+          fontWeight: 700,
+          color: 'white',
+          letterSpacing: '-0.03em',
+          marginBottom: '64px'
+        }}>
+          How it works
+        </h2>
+
+        <div style={{
+          display: 'flex',
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          position: 'relative',
+          gap: '24px',
+          flexWrap: 'wrap'
+        }}>
+          {/* We only show the dashed line on non-mobile screens realistically, 
+              but for simplicity, we'll use a CSS trick or absolute positioning */}
+          
+          <div style={{
+            position: 'absolute',
+            top: '20px',
+            left: '10%',
+            right: '10%',
+            height: '1px',
+            borderTop: '1px dashed rgba(79,110,247,0.3)',
+            zIndex: 0
+          }} className="hide-on-mobile" />
+
+          {steps.map((step, i) => (
+            <div key={i} className="animate" style={{
+              flex: '1 1 250px',
+              position: 'relative',
+              zIndex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              transitionDelay: `${i * 150}ms`
+            }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                border: '1px solid rgba(79,110,247,0.4)',
+                backgroundColor: '#0a0a0b',
+                color: 'var(--accent)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 700,
+                fontSize: '16px',
+                marginBottom: '24px',
+                boxShadow: '0 0 15px rgba(79,110,247,0.1)'
+              }}>
+                {step.num}
+              </div>
+              <h3 style={{
+                fontSize: '18px',
+                fontWeight: 600,
+                color: 'white',
+                marginBottom: '12px'
+              }}>
+                {step.title}
+              </h3>
+              <p style={{
+                fontSize: '14px',
+                color: 'var(--text-secondary)',
+                lineHeight: 1.6
+              }}>
+                {step.desc}
+              </p>
             </div>
-            {i < steps.length - 1 && <div className="how-arrow">→</div>}
-          </React.Fragment>
-        ))}
+          ))}
+        </div>
       </div>
-    </div>
+      <style dangerouslySetInnerHTML={{__html: `
+        @media (max-width: 768px) {
+          .hide-on-mobile { display: none !important; }
+        }
+      `}} />
+    </section>
   );
 }
 
