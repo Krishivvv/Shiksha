@@ -90,7 +90,7 @@ function LinearFooter() {
           gap: '16px'
         }}>
           <div style={{ fontSize: '12px', color: '#4a4a5a' }}>
-            © {new Date().getFullYear()} GyanAI. All rights reserved.
+            © {new Date().getFullYear()} Shiksha. All rights reserved.
           </div>
           <div style={{ fontSize: '12px', color: '#4a4a5a', display: 'flex', gap: '16px' }}>
             <a href="#" style={{ transition: 'color var(--transition-fast)' }} onMouseEnter={e => e.currentTarget.style.color = '#8b8b9a'} onMouseLeave={e => e.currentTarget.style.color = '#4a4a5a'}>Privacy</a>
