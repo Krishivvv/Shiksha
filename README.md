@@ -56,7 +56,13 @@ Want to run my project locally? Follow these steps to get the full stack up and 
 
 ### 📦 Backend Setup (Flask/Python)
 
-1. **Install dependencies:**
+1. **Configure Environment Variables:**
+   Create a `.env` file in the root directory (you can use `.env.example` as a template) and add your API keys.  
+   **⚠️ Important:** You must provide your own API key to run this project, as the API key fields are left empty by default for security.
+   ```env
+   KODEKLOUD_API_KEY=your_api_key_here
+   ```
+2. **Install dependencies:**
    ```bash
    pip install -r requirements.txt
    ```
