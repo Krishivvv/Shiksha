@@ -20,7 +20,7 @@
 
 ## 🔥 Why I Built This
 
-I developed Shiksha to bridge the gap between complex topics and accessible, engaging learning materials. Traditional video creation is time-consuming and requires specialized skills. Gyan AI automates the entire pipeline—from scripting and storyboarding to animation rendering, voiceover generation, and final video composition.
+I developed Shiksha to bridge the gap between complex topics and accessible, engaging learning materials. Traditional video creation is time-consuming and requires specialized skills. Shiksha automates the entire pipeline—from scripting and storyboarding to animation rendering, voiceover generation, and final video composition.
 
 ---
 
