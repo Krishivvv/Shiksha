@@ -5,7 +5,7 @@ function HowItWorks() {
     {
       num: 1,
       title: "Input Context",
-      desc: "Provide a simple text prompt or upload a detailed PDF document. GyanAI's LLM instantly comprehends the material."
+      desc: "Provide a simple text prompt or upload a detailed PDF document. Shiksha's LLM instantly comprehends the material."
     },
     {
       num: 2,
