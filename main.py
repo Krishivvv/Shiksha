@@ -7,6 +7,7 @@ from pathlib import Path
 from jinja2 import Template
 import tempfile
 import shutil
+import time
 from dotenv import load_dotenv
 
 load_dotenv()  # must run before any module that reads env vars at import time
@@ -26,7 +27,8 @@ from pdf import extract_last_frame, generate_pdf
 
 logger = logging.getLogger(__name__)
 
-_genai_client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
+# ── API clients ──────────────────────────────────────────────────────────────
+
 _kodekloud_api_key = os.getenv("KODEKLOUD_API_KEY")
 _kodekloud_backup_api_key = os.getenv("KODEKLOUD_API_KEY_BACKUP")
 _kodekloud_base_url = os.getenv("KODEKLOUD_BASE_URL", "https://api.ai.kodekloud.com/v1")
@@ -41,6 +43,19 @@ _kodekloud_backup_client = (
     if _kodekloud_backup_api_key
     else None
 )
+
+_google_api_key = os.getenv("GOOGLE_API_KEY")
+_genai_client = genai.Client(api_key=_google_api_key) if _google_api_key else None
+
+# Startup validation
+if _kodekloud_client:
+    logger.info("LLM provider: KodeKloud (%s) model=%s", _kodekloud_base_url, _kodekloud_model)
+elif _genai_client:
+    logger.info("LLM provider: Google Gemini (fallback)")
+else:
+    logger.error("NO LLM PROVIDER CONFIGURED — set KODEKLOUD_API_KEY or GOOGLE_API_KEY in .env")
+
+# ── Chrome path ──────────────────────────────────────────────────────────────
 
 if os.name == "nt":
     possible_paths = [
@@ -68,7 +83,7 @@ logger.info("Using Chrome path: %s", CHROME_PATH)
 
 def generate_response(msg_history, model="gemini-2.0-flash"):
     """Use KodeKloud OpenAI-compatible API if configured; fallback to Gemini."""
-    import time
+    # ── Try KodeKloud first ──────────────────────────────────────────────
     if _kodekloud_client is not None:
         max_retries = 3
         clients = [("primary", _kodekloud_client)]
@@ -79,11 +94,15 @@ def generate_response(msg_history, model="gemini-2.0-flash"):
         for client_name, client in clients:
             for attempt in range(max_retries):
                 try:
+                    logger.info("LLM call via KodeKloud %s (attempt %d)", client_name, attempt + 1)
                     response = client.chat.completions.create(
                         model=_kodekloud_model,
                         messages=msg_history,
                     )
-                    return response.choices[0].message.content or ""
+                    text = response.choices[0].message.content or ""
+                    if not text.strip():
+                        raise RuntimeError("LLM returned empty response")
+                    return text
                 except Exception as e:
                     last_error = e
                     error_text = str(e).lower()
@@ -95,24 +114,35 @@ def generate_response(msg_history, model="gemini-2.0-flash"):
                         or "403" in error_text
                         or "unauthorized" in error_text
                         or "forbidden" in error_text
+                        or "500" in error_text
+                        or "502" in error_text
+                        or "503" in error_text
+                        or "timeout" in error_text
+                        or "connection" in error_text
                     )
                     if is_retryable and attempt < max_retries - 1:
                         wait_time = (attempt + 1) * 15
                         logger.warning(
-                            "KodeKloud %s key issue (%s). Waiting %ds before retry...",
-                            client_name,
-                            str(e),
-                            wait_time,
+                            "KodeKloud %s error (%s). Waiting %ds before retry...",
+                            client_name, str(e), wait_time,
                         )
                         time.sleep(wait_time)
                         continue
+                    logger.warning("KodeKloud %s failed after attempt %d: %s", client_name, attempt + 1, e)
                     break
 
             if client_name == "primary" and _kodekloud_backup_client is not None:
                 logger.warning("Switching from primary to backup KodeKloud API key.")
 
-        if last_error is not None:
-            raise last_error
+        # If KodeKloud failed completely, fall through to Gemini
+        logger.warning("All KodeKloud attempts exhausted. Falling back to Gemini...")
+
+    # ── Gemini fallback ──────────────────────────────────────────────────
+    if _genai_client is None:
+        raise RuntimeError(
+            "LLM call failed: no working API provider. "
+            "KodeKloud keys failed and no valid GOOGLE_API_KEY configured."
+        )
 
     messages = msg_history[:]
     system_instruction = None
@@ -130,7 +160,7 @@ def generate_response(msg_history, model="gemini-2.0-flash"):
     ]
 
     config = types.GenerateContentConfig(system_instruction=system_instruction) if system_instruction else None
-    
+
     max_retries = 3
     for attempt in range(max_retries):
         try:
@@ -140,16 +170,18 @@ def generate_response(msg_history, model="gemini-2.0-flash"):
             if "RESOURCE_EXHAUSTED" in str(e) or "429" in str(e) or "Quota" in str(e):
                 if attempt < max_retries - 1:
                     wait_time = (attempt + 1) * 15
-                    logger.warning("Rate limited (%s). Waiting %ds and falling back to gemini-1.5-flash...", str(e), wait_time)
+                    logger.warning("Rate limited (%s). Waiting %ds and falling back to gemini-2.5-flash...", str(e), wait_time)
                     time.sleep(wait_time)
-                    model = "gemini-2.5-flash" # Use a different model's quota
+                    model = "gemini-2.5-flash"
                     continue
-            raise e
+            raise RuntimeError(f"Gemini API call failed: {e}") from e
 
 
 # ── TTS ───────────────────────────────────────────────────────────────────────
 
 async def _tts_async(save_file_path, script):
+    # Ensure parent directory exists
+    Path(save_file_path).parent.mkdir(parents=True, exist_ok=True)
     communicate = edge_tts.Communicate(script, voice="en-US-AriaNeural")
     await communicate.save(save_file_path)
 
@@ -181,7 +213,7 @@ def safe_parse_json(gpt_output):
             gpt_output = gpt_output.strip()[3:-3].strip()
         return json.loads(gpt_output)
     except json.JSONDecodeError as e:
-        logger.error("JSON parsing failed: %s", e)
+        logger.error("JSON parsing failed: %s\nRaw output (first 500 chars): %s", e, gpt_output[:500])
         return None
 
 
@@ -197,6 +229,16 @@ def generate_valid_animation_code(prompt, max_attempts=3, task_id="global"):
         logger.info("Generating animation code (attempt %d)", attempt)
         set_progress({"state": "processing", "step": f"Generating animation (attempt {attempt})", "message": prompt}, user_id=task_id)
         clean_code = generate_response(msg_history)
+        # Strip markdown fences if the LLM wrapped the code
+        if clean_code.startswith("```"):
+            lines = clean_code.strip().split("\n")
+            # Remove first line (```js or ```) and last line (```)
+            if lines[-1].strip() == "```":
+                lines = lines[1:-1]
+            else:
+                lines = lines[1:]
+            clean_code = "\n".join(lines)
+
         try:
             is_valid, logs = run_async_safely(validate_code_in_browser(clean_code))
             past_error = "\n".join(logs) if isinstance(logs, list) else str(logs)
@@ -208,7 +250,7 @@ def generate_valid_animation_code(prompt, max_attempts=3, task_id="global"):
             logger.info("Valid animation code generated on attempt %d", attempt)
             return clean_code
         else:
-            msg_history.append({"role": "system", "content": clean_code})
+            msg_history.append({"role": "assistant", "content": clean_code})
             msg_history.append({"role": "user", "content": f"The code has an error: {past_error}. Fix it and regenerate the animation: {prompt}"})
             logger.warning("Animation code invalid, retrying...")
 
@@ -300,20 +342,21 @@ def generate_video(user_prompt, output_filename, username, task_id="global"):
         {"role": "user", "content": user_prompt},
     ]
     set_progress({"state": "processing", "step": "Generating script", "message": user_prompt}, user_id=task_id)
-    script = generate_response(msg_history_script)
-    script = safe_parse_json(script)
+    raw_script = generate_response(msg_history_script)
+    script = safe_parse_json(raw_script)
     if not script:
-        raise RuntimeError("Script generation returned invalid JSON")
+        raise RuntimeError(f"Script generation returned invalid JSON. Raw (first 500 chars): {raw_script[:500]}")
 
     notes_list = []
 
-    for segment in script:
+    for idx, segment in enumerate(script):
         segment_id = segment["id"]
         voiceover  = segment["voice_script"]
         animation  = segment["animation"]
         duration   = segment["duration"]
 
-        set_progress({"state": "processing", "step": f"Processing {segment_id}", "message": "Generating animation"}, user_id=task_id)
+        logger.info("Processing segment %d/%d: %s", idx + 1, len(script), segment_id)
+        set_progress({"state": "processing", "step": f"Processing {segment_id} ({idx+1}/{len(script)})", "message": "Generating animation"}, user_id=task_id)
         animation_prompt = f"{animation} to last at least {duration} seconds. The voiceover for this is {voiceover}"
 
         try:
@@ -344,16 +387,21 @@ def generate_video(user_prompt, output_filename, username, task_id="global"):
         )
         logger.info("Segment %s complete", segment_id)
 
-        msg_history_pdf = [
-            {"role": "system", "content": pdf_system_prompt},
-            {"role": "user", "content": voiceover},
-        ]
-        pdf_content = safe_text(generate_response(msg_history_pdf))
-        segment_img = extract_last_frame(
-            f"{seg_folder}/{segment_id}.webm",
-            f"{pdf_folder}/{segment_id}.png",
-        )
-        notes_list.append({"id": segment_id, "notes": pdf_content, "image_path": segment_img})
+        # Generate PDF notes for this segment
+        try:
+            msg_history_pdf = [
+                {"role": "system", "content": pdf_system_prompt},
+                {"role": "user", "content": voiceover},
+            ]
+            pdf_content = safe_text(generate_response(msg_history_pdf))
+            segment_img = extract_last_frame(
+                f"{seg_folder}/{segment_id}.webm",
+                f"{pdf_folder}/{segment_id}.png",
+            )
+            notes_list.append({"id": segment_id, "notes": pdf_content, "image_path": segment_img})
+        except Exception as e:
+            logger.warning("PDF notes generation failed for %s: %s", segment_id, e)
+            notes_list.append({"id": segment_id, "notes": voiceover, "image_path": None})
 
     set_progress({"state": "processing", "step": "Merging final video", "message": "Combining all segments"}, user_id=task_id)
 
@@ -365,8 +413,11 @@ def generate_video(user_prompt, output_filename, username, task_id="global"):
     pdf_filename = os.path.join(user_output_folder, "notes.pdf")
     if os.path.exists(pdf_filename):
         os.remove(pdf_filename)
-    generate_pdf(notes_list, pdf_filename)
-    logger.info("PDF notes generated")
+    try:
+        generate_pdf(notes_list, pdf_filename)
+        logger.info("PDF notes generated")
+    except Exception as e:
+        logger.warning("PDF generation failed (non-fatal): %s", e)
 
     set_progress({"state": "processing", "step": "Completed", "message": "Video ready"}, user_id=task_id)
     return True, script

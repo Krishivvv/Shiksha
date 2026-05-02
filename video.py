@@ -1,7 +1,11 @@
 import subprocess
+import logging
 from pathlib import Path
 
+logger = logging.getLogger(__name__)
+
 def merge_with_ffmpeg(video_path, audio_path, output_path):
+    """Merge a video and audio file into a single MP4.  Raises on failure."""
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
 
     command = [
@@ -12,22 +16,23 @@ def merge_with_ffmpeg(video_path, audio_path, output_path):
         "-c:v", "libx264",
         "-pix_fmt", "yuv420p",
         "-c:a", "aac",
+        "-shortest",
         str(output_path)
     ]
 
-    try:
-        subprocess.run(command, check=True)
-        print(f"Merged into {output_path}")
-    except subprocess.CalledProcessError as e:
-        print("FFmpeg failed:", e)
+    result = subprocess.run(command, capture_output=True, text=True)
+    if result.returncode != 0:
+        logger.error("FFmpeg merge failed for %s: %s", output_path, result.stderr)
+        raise RuntimeError(f"FFmpeg merge failed: {result.stderr[:500]}")
+    logger.info("Merged into %s", output_path)
 
 def merge_videos(folder_path, output_path):
+    """Concatenate all segment_*.mp4 files into a single video.  Raises on failure."""
     folder = Path(folder_path).resolve()  # Make absolute path
     video_files = sorted(folder.glob("segment_*.mp4"))
 
     if not video_files:
-        print("No .mp4 files found in folder.")
-        return
+        raise RuntimeError(f"No segment_*.mp4 files found in {folder}")
 
     concat_file = folder / "concat_list.txt"
 
@@ -46,8 +51,8 @@ def merge_videos(folder_path, output_path):
         str(Path(output_path).resolve())
     ]
 
-    try:
-        subprocess.run(command, check=True)
-        print(f"Merged into {output_path}")
-    except subprocess.CalledProcessError as e:
-        print("FFmpeg failed to stitch videos:", e)
+    result = subprocess.run(command, capture_output=True, text=True)
+    if result.returncode != 0:
+        logger.error("FFmpeg concat failed: %s", result.stderr)
+        raise RuntimeError(f"FFmpeg concat failed: {result.stderr[:500]}")
+    logger.info("Merged all segments into %s", output_path)
