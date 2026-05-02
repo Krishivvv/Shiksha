@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>🧠 Gyan AI</h1>
+  <h1>🧠 Shiksha</h1>
   <p><strong>An Intelligent Educational Content Generator Built by Krishiv</strong></p>
   
   <p>
