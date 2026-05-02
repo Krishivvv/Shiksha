@@ -108,7 +108,7 @@ npm run build
 
 I built this project to push the boundaries of what's possible with generative AI in the EdTech space. I'm passionate about creating intelligent systems that solve real-world problems. 
 
-If you're impressed by Gyan AI or want to collaborate, feel free to reach out or check out my other work!
+If you're impressed by Shiksha or want to collaborate, feel free to reach out or check out my other work!
 
 ---
 <div align="center">
