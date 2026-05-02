@@ -84,7 +84,7 @@ function Home() {
       <FeatureSection 
         numberBadge="2.0"
         title="Procedural Animation Engine"
-        description="We don't use stock footage. GyanAI dynamically writes and executes p5.js code to procedurally draw mathematical and conceptual animations."
+        description="We don't use stock footage. Shiksha dynamically writes and executes p5.js code to procedurally draw mathematical and conceptual animations."
         subFeatures={[
           "Real-time canvas rendering via headless browser",
           "Code-driven precise visual demonstrations",
