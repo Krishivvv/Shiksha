@@ -219,7 +219,7 @@ function Tool() {
               <span style={{ color: "var(--accent)" }}>educational video</span>
             </h2>
             <p>
-              Describe any topic and GyanAI will build an animated lesson with
+              Describe any topic and Shiksha will build an animated lesson with
               voiceover.
             </p>
           </div>
