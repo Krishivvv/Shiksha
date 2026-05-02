@@ -1,6 +1,6 @@
 <div align="center">
   <h1>🧠 Shiksha</h1>
-  <p><strong>An Intelligent Educational Content Generator Built by Krishiv</strong></p>
+  <p><strong>An Intelligent Educational Content Generator </strong></p>
   
   <p>
     <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python" />
@@ -111,6 +111,6 @@ I built this project to push the boundaries of what's possible with generative A
 If you're impressed by Shiksha or want to collaborate, feel free to reach out or check out my other work!
 
 ---
-<div align="center">
+
   <sub>Built with ❤️ and a lot of caffeine by Krishiv.</sub>
 </div>
