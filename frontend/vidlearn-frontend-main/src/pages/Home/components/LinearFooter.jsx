@@ -23,7 +23,7 @@ function LinearFooter() {
                 <rect width="100" height="100" rx="20" fill="var(--accent)" />
                 <text x="50%" y="50%" fontFamily="Inter, sans-serif" fontWeight="bold" fontSize="60" fill="white" textAnchor="middle" dy=".35em">G</text>
               </svg>
-              GyanAI
+              Shiksha
             </div>
             <p style={{ fontSize: '13px', color: '#4a4a5a', marginTop: '8px', maxWidth: '200px' }}>
               The generative engine for educational content.
