@@ -90,7 +90,7 @@ function Hero() {
         marginTop: '20px',
         transitionDelay: '350ms'
       }}>
-        GyanAI writes the script, animates every frame, narrates it, and tests your knowledge. The fastest way to create educational content.
+        Shiksha writes the script, animates every frame, narrates it, and tests your knowledge. The fastest way to create educational content.
       </p>
 
       {/* CTAs */}
