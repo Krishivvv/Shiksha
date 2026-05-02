@@ -55,7 +55,7 @@ function Home() {
       <FeatureSection 
         numberBadge="1.0"
         title="LLM-Powered Scripting"
-        description="GyanAI analyzes your prompt or PDF document to structure a comprehensive lesson plan, breaking down complex topics into digestible narrative segments."
+        description="Shiksha analyzes your prompt or PDF document to structure a comprehensive lesson plan, breaking down complex topics into digestible narrative segments."
         subFeatures={[
           "Context-aware generation from text or PDFs",
           "Automatic pacing and segment duration",
