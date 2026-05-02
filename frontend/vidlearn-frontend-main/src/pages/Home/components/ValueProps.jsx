@@ -45,7 +45,7 @@ function ValueProps() {
               Generative Animation
             </h3>
             <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.65 }}>
-              Say goodbye to tedious slide decks. GyanAI writes p5.js code to procedurally draw and animate your concepts frame by frame.
+              Say goodbye to tedious slide decks. Shiksha writes p5.js code to procedurally draw and animate your concepts frame by frame.
             </p>
           </div>
 
