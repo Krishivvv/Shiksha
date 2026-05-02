@@ -14,7 +14,7 @@
 
 <br />
 
-> **Gyan AI** is an advanced, AI-powered educational content generator that instantly creates dynamic, animated videos with natural voiceovers and interactive quizzes—all from a single text prompt. Engineered from the ground up to revolutionize the way students and educators consume and create visually rich explanations without requiring any video editing or scripting experience.
+> **Shiksha** is an advanced, AI-powered educational content generator that instantly creates dynamic, animated videos with natural voiceovers and interactive quizzes—all from a single text prompt. Engineered from the ground up to revolutionize the way students and educators consume and create visually rich explanations without requiring any video editing or scripting experience.
 
 ---
 
