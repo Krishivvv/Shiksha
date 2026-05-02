@@ -37,7 +37,7 @@ I developed Shiksha to bridge the gap between complex topics and accessible, eng
 
 ## 🏗️ Architecture & Tech Stack
 
-Gyan AI is built on a robust, microservices-inspired architecture:
+Shiksha is built on a robust, microservices-inspired architecture:
 
 | Component | Technology | Role in System |
 | :--- | :--- | :--- |
