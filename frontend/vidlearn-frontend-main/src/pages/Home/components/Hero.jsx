@@ -60,7 +60,7 @@ function Hero() {
         }}
         >
           <span style={{ width: '6px', height: '6px', backgroundColor: 'var(--accent)', borderRadius: '50%' }} />
-          Introducing GyanAI 2.0: Instant Quiz Generation →
+          Introducing Shiksha 2.0: Instant Quiz Generation →
         </a>
       </div>
 
