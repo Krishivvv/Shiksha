@@ -124,5 +124,5 @@ A sample nginx server block (TLS, SPA fallback, API proxy, long-term asset cachi
 ---
 
 <div align="center">
-  <sub>Built with ❤️ and a lot of caffeine.</sub>
+  <sub>Built with ❤️ and a lot of caffeine by Krishiv.</sub>
 </div>
