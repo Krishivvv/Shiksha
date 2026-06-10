@@ -9,6 +9,8 @@ function Video() {
         src="/videoFrontend.mp4"
         controls={true}
         playsInline
+        preload="metadata"
+        aria-label="Shishka AI product demo"
       />
     </div>
   );

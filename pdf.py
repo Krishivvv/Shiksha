@@ -3,6 +3,8 @@ import subprocess
 import logging
 from fpdf import FPDF
 
+import config
+
 logger = logging.getLogger(__name__)
 
 
@@ -12,7 +14,10 @@ def extract_last_frame(video_path, output_image_path):
             ["ffmpeg", "-y", "-sseof", "-1", "-i", video_path, "-vframes", "1", output_image_path],
             check=True,
             capture_output=True,
+            timeout=config.FFMPEG_TIMEOUT,
         )
+    except subprocess.TimeoutExpired:
+        logger.warning("FFmpeg frame extraction timed out for %s", video_path)
     except subprocess.CalledProcessError as e:
         logger.warning("FFmpeg frame extraction failed for %s: %s", video_path, e.stderr.decode(errors="replace"))
     return output_image_path

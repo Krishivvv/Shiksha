@@ -3,7 +3,7 @@ import React from "react";
 function Logo() {
   return (
     <a href="/" className="logo-mark">
-      Shiksha<span className="logo-ai">AI</span>
+      Shishka<span className="logo-ai">&nbsp;AI</span>
     </a>
   );
 }

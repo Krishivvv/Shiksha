@@ -1,15 +1,18 @@
 import signal
+import logging
 from pyppeteer import launch
 import asyncio
 import threading
 from pathlib import Path
 import os
 
+logger = logging.getLogger(__name__)
+
 async def safe_launch(*args, **kwargs):
     original_signal = signal.signal
 
     def silent_blocker(sig, handler):
-        print(f"[SafeLaunch] Ignored signal registration for sig={sig}")
+        logger.debug("[SafeLaunch] Ignored signal registration for sig=%s", sig)
 
     signal.signal = silent_blocker  # temporarily ignore
     try:
@@ -59,6 +62,6 @@ def clear_folder(folder_path):
                         Path(root, subdir).rmdir()
                 item.rmdir()
         except Exception as e:
-            print(f"Failed to delete {item}: {e}")
+            logger.warning("Failed to delete %s: %s", item, e)
 
-    print(f"Cleared contents of folder: {folder}")
+    logger.debug("Cleared contents of folder: %s", folder)

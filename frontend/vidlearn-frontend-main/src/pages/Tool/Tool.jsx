@@ -4,9 +4,8 @@ import PromptBox from "./components/PromptBox";
 import VideoBox from "./components/VideoBox";
 import LinearNav from "../Home/components/LinearNav";
 import LinearFooter from "../Home/components/LinearFooter";
+import { API, apiFetch } from "../../api";
 import "./Tool.css";
-
-const API = import.meta.env.VITE_API_URL;
 
 function Tool() {
   const [open, setOpen] = useState(false);
@@ -25,7 +24,7 @@ function Tool() {
 
   // ── Auth guard + fetch history on mount ────────────────────────────────
   useEffect(() => {
-    fetch(`${API}/history`, { credentials: "include" })
+    apiFetch("/history")
       .then((res) => {
         if (res.status === 401) {
           window.location.href = "/login";
@@ -40,7 +39,7 @@ function Tool() {
         setHistory(
           videos.map((v) => ({
             ...v,
-            url: `${API}/download-video?filename=${v.filename}`,
+            url: `${API}/download-video?filename=${encodeURIComponent(v.filename)}`,
           }))
         );
       })
@@ -63,9 +62,7 @@ function Tool() {
 
     pollIntervalRef.current = setInterval(async () => {
       try {
-        const res = await fetch(`${API}/task-status/${taskId}`, {
-          credentials: "include",
-        });
+        const res = await apiFetch(`/task-status/${taskId}`);
         if (!res.ok) return;
         const data = await res.json();
         setProgress(data);
@@ -77,7 +74,7 @@ function Tool() {
 
           const filename = data.filename;
           if (filename) {
-            const url = `${API}/download-video?filename=${filename}`;
+            const url = `${API}/download-video?filename=${encodeURIComponent(filename)}`;
             setVideoUrl(url);
             setHistory((prev) => [
               { filename, url, prompt_text: prompt, status: "completed" },
@@ -120,9 +117,8 @@ function Tool() {
     form.append("attachment", f);
 
     try {
-      const res = await fetch(`${API}/upload-pdf`, {
+      const res = await apiFetch("/upload-pdf", {
         method: "POST",
-        credentials: "include",
         body: form,
       });
       const data = await res.json();
@@ -150,9 +146,8 @@ function Tool() {
     if (file) form.append("attachment", file);
 
     try {
-      const res = await fetch(`${API}/generate-video`, {
+      const res = await apiFetch("/generate-video", {
         method: "POST",
-        credentials: "include",
         body: form,
       });
       const data = await res.json();
@@ -170,7 +165,7 @@ function Tool() {
         } else {
           // Fallback for old API shape: { success, filename }
           if (data.filename) {
-            const url = `${API}/download-video?filename=${data.filename}`;
+            const url = `${API}/download-video?filename=${encodeURIComponent(data.filename)}`;
             setVideoUrl(url);
             setHistory((prev) => [
               { filename: data.filename, url, prompt_text: refined_prompt },
@@ -219,7 +214,7 @@ function Tool() {
               <span style={{ color: "var(--accent)" }}>educational video</span>
             </h2>
             <p>
-              Describe any topic and Shiksha will build an animated lesson with
+              Describe any topic and Shishka AI will build an animated lesson with
               voiceover.
             </p>
           </div>

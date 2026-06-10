@@ -60,7 +60,7 @@ function Hero() {
         }}
         >
           <span style={{ width: '6px', height: '6px', backgroundColor: 'var(--accent)', borderRadius: '50%' }} />
-          Introducing Shiksha 2.0: Instant Quiz Generation →
+          Introducing Shishka AI 2.0: Instant Quiz Generation →
         </a>
       </div>
 
@@ -90,7 +90,7 @@ function Hero() {
         marginTop: '20px',
         transitionDelay: '350ms'
       }}>
-        Shiksha writes the script, animates every frame, narrates it, and tests your knowledge. The fastest way to create educational content.
+        Shishka AI writes the script, animates every frame, narrates it, and tests your knowledge. The fastest way to create educational content.
       </p>
 
       {/* CTAs */}
@@ -174,7 +174,7 @@ function Hero() {
               fontSize: '12px',
               color: 'var(--text-muted)'
             }}>
-              gyan-ai.app/tool
+              shishka.ai/tool
             </div>
           </div>
 

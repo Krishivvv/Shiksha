@@ -35,9 +35,9 @@ function LinearNav() {
         <Link to="/" style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: 700, fontSize: "15px", color: "white" }}>
           <svg width="20" height="20" viewBox="0 0 100 100">
             <rect width="100" height="100" rx="20" fill="var(--accent)" />
-            <text x="50%" y="50%" fontFamily="Inter, sans-serif" fontWeight="bold" fontSize="60" fill="white" textAnchor="middle" dy=".35em">G</text>
+            <text x="50%" y="50%" fontFamily="Inter, sans-serif" fontWeight="bold" fontSize="60" fill="white" textAnchor="middle" dy=".35em">S</text>
           </svg>
-          Shiksha
+          Shishka AI
         </Link>
 
         {/* Center: Nav Links */}

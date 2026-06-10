@@ -1,18 +1,36 @@
+# ── Secrets & environment ──
 .env
 .env.local
 .env.*.local
+**/.env
+**/.env.local
+!**/.env.example
+
+# ── Python ──
 __pycache__/
 *.pyc
 *.pyo
+
+# ── Databases (never commit application data) ──
+*.db
+*.sqlite
+*.sqlite3
+instance/
+
+# ── Generated / runtime artifacts ──
 output/
+output.mp4
+uploads/
 segments/
+voice/
+final_videos/
 pdf_images/
 migrations/
-instance/
-final_videos/
-voice/
-# dependencies
-/node_modules
+temp_render.html
 
-# production
+# ── Dependencies ──
+/node_modules
+**/node_modules
+
+# ── Build output (committed build is regenerated; ignore stray root build) ──
 /build

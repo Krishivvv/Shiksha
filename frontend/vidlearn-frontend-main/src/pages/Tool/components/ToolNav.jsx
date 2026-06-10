@@ -3,17 +3,17 @@ import { useNavigate } from "react-router-dom";
 import ToolVideo from "./ToolVideo";
 import { MdOutlineClose } from "react-icons/md";
 import { RiLogoutBoxLine } from "react-icons/ri";
-
-const API = import.meta.env.VITE_API_URL;
+import { apiFetch } from "../../../api";
 
 function ToolNav({ open, handleNav, history }) {
   const navigate = useNavigate();
 
   const handleLogout = async () => {
-    await fetch(`${API}/logout`, {
-      method: "POST",
-      credentials: "include",
-    });
+    try {
+      await apiFetch("/logout", { method: "POST" });
+    } catch {
+      // ignore network errors; navigate to login regardless
+    }
     navigate("/login");
   };
 

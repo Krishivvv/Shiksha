@@ -103,7 +103,7 @@ function SocialProof() {
         }}>
           {[
             {
-              quote: "Shiksha completely changed how I prepare for my lectures. What used to take a weekend of slide building now takes five minutes.",
+              quote: "Shishka AI completely changed how I prepare for my lectures. What used to take a weekend of slide building now takes five minutes.",
               name: "Dr. Sarah Jenkins",
               role: "Professor of Physics"
             },

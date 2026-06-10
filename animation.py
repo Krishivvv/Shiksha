@@ -1,16 +1,19 @@
 import asyncio
 import base64
+import logging
 from pathlib import Path
 from jinja2 import Template
 import os
 import shutil
 from helper import safe_launch
 
+logger = logging.getLogger(__name__)
+
 def generate_html(js_code, output_html_path="temp_render.html"):
     template_text = Path("base.html").read_text()
     template = Template(template_text)
     rendered_html = template.render(code=js_code)
-    print("rendered template \n")
+    logger.debug("Rendered animation template")
     Path(output_html_path).write_text(rendered_html, encoding="utf-8")
     return output_html_path
 
@@ -50,13 +53,13 @@ async def record_animation(html_path, segment_id, duration, segments_folder="seg
 
     try:
         page = await browser.newPage()
-        page.on('console', lambda msg: print(f'[JS] {msg.text}'))
+        page.on('console', lambda msg: logger.debug('[JS] %s', msg.text))
 
-        await page.goto(f"file://{str(Path(html_path).absolute())}")
-        print("Page loaded")
+        await page.goto(f"file://{str(Path(html_path).absolute())}", {"timeout": 30000})
+        logger.debug("Page loaded")
 
         await page.waitForSelector("canvas")
-        print("Canvas found")
+        logger.debug("Canvas found")
 
         await page.evaluate("""
             window.onerror = function(msg, src, line, col, err) {
@@ -65,7 +68,7 @@ async def record_animation(html_path, segment_id, duration, segments_folder="seg
             };
         """)
 
-        print("Injecting CCapture setup and base64 save logic...")
+        logger.debug("Injecting CCapture setup and base64 save logic...")
 
         await page.evaluate(f"""
             try {{
@@ -119,15 +122,15 @@ async def record_animation(html_path, segment_id, duration, segments_folder="seg
             }}
         """)
 
-        print(f"Waiting {duration + 10} seconds for animation to complete...")
+        logger.debug("Waiting %s seconds for animation to complete...", duration + 10)
         await asyncio.sleep(duration + 10)
 
         # Wait for blobBase64 to be ready
-        print("Waiting for blobBase64 to be set...")
+        logger.debug("Waiting for blobBase64 to be set...")
         for i in range(30):  # wait up to ~30 seconds
             ready = await page.evaluate("typeof window.blobBase64 === 'string' && window.blobBase64.length > 1500") # 1000
             if ready:
-                print("Blob is ready!")
+                logger.debug("Blob is ready")
                 break
             await asyncio.sleep(1.5) # 1
         else:
@@ -140,8 +143,8 @@ async def record_animation(html_path, segment_id, duration, segments_folder="seg
         out_path = Path(segments_folder) / f"{segment_id}.webm"
         out_path.parent.mkdir(parents=True, exist_ok=True)
         out_path.write_bytes(video_data)
-        print(f"Video saved to {out_path}")
+        logger.info("Video saved to %s", out_path)
 
     finally:
         await browser.close()
-        print("Browser closed")
+        logger.debug("Browser closed")

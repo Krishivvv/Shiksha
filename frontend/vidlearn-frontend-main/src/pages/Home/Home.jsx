@@ -55,7 +55,7 @@ function Home() {
       <FeatureSection 
         numberBadge="1.0"
         title="LLM-Powered Scripting"
-        description="Shiksha analyzes your prompt or PDF document to structure a comprehensive lesson plan, breaking down complex topics into digestible narrative segments."
+        description="Shishka AI analyzes your prompt or PDF document to structure a comprehensive lesson plan, breaking down complex topics into digestible narrative segments."
         subFeatures={[
           "Context-aware generation from text or PDFs",
           "Automatic pacing and segment duration",
@@ -84,7 +84,7 @@ function Home() {
       <FeatureSection 
         numberBadge="2.0"
         title="Procedural Animation Engine"
-        description="We don't use stock footage. Shiksha dynamically writes and executes p5.js code to procedurally draw mathematical and conceptual animations."
+        description="We don't use stock footage. Shishka AI dynamically writes and executes p5.js code to procedurally draw mathematical and conceptual animations."
         subFeatures={[
           "Real-time canvas rendering via headless browser",
           "Code-driven precise visual demonstrations",

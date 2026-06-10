@@ -2,6 +2,8 @@ import subprocess
 import logging
 from pathlib import Path
 
+import config
+
 logger = logging.getLogger(__name__)
 
 def merge_with_ffmpeg(video_path, audio_path, output_path):
@@ -20,7 +22,11 @@ def merge_with_ffmpeg(video_path, audio_path, output_path):
         str(output_path)
     ]
 
-    result = subprocess.run(command, capture_output=True, text=True)
+    try:
+        result = subprocess.run(command, capture_output=True, text=True, timeout=config.FFMPEG_TIMEOUT)
+    except subprocess.TimeoutExpired as e:
+        logger.error("FFmpeg merge timed out for %s", output_path)
+        raise RuntimeError(f"FFmpeg merge timed out after {config.FFMPEG_TIMEOUT}s") from e
     if result.returncode != 0:
         logger.error("FFmpeg merge failed for %s: %s", output_path, result.stderr)
         raise RuntimeError(f"FFmpeg merge failed: {result.stderr[:500]}")
@@ -51,7 +57,11 @@ def merge_videos(folder_path, output_path):
         str(Path(output_path).resolve())
     ]
 
-    result = subprocess.run(command, capture_output=True, text=True)
+    try:
+        result = subprocess.run(command, capture_output=True, text=True, timeout=config.FFMPEG_TIMEOUT)
+    except subprocess.TimeoutExpired as e:
+        logger.error("FFmpeg concat timed out")
+        raise RuntimeError(f"FFmpeg concat timed out after {config.FFMPEG_TIMEOUT}s") from e
     if result.returncode != 0:
         logger.error("FFmpeg concat failed: %s", result.stderr)
         raise RuntimeError(f"FFmpeg concat failed: {result.stderr[:500]}")

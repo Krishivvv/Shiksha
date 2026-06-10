@@ -10,9 +10,9 @@ function Nav() {
         <Link to="/" className="navbar-logo">
           <svg width="24" height="24" viewBox="0 0 100 100">
             <rect width="100" height="100" rx="20" fill="var(--accent)" />
-            <text x="50%" y="50%" fontFamily="Inter, sans-serif" fontWeight="bold" fontSize="60" fill="white" textAnchor="middle" dy=".35em">G</text>
+            <text x="50%" y="50%" fontFamily="Inter, sans-serif" fontWeight="bold" fontSize="60" fill="white" textAnchor="middle" dy=".35em">S</text>
           </svg>
-          Shiksha
+          Shishka AI
         </Link>
         <div className="navbar-links" style={{ display: mobileOpen ? 'flex' : '' }}>
           <Link to="/">Home</Link>

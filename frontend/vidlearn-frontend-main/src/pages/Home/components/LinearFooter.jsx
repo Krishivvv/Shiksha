@@ -21,9 +21,9 @@ function LinearFooter() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'white', fontWeight: 600, fontSize: '15px' }}>
               <svg width="18" height="18" viewBox="0 0 100 100">
                 <rect width="100" height="100" rx="20" fill="var(--accent)" />
-                <text x="50%" y="50%" fontFamily="Inter, sans-serif" fontWeight="bold" fontSize="60" fill="white" textAnchor="middle" dy=".35em">G</text>
+                <text x="50%" y="50%" fontFamily="Inter, sans-serif" fontWeight="bold" fontSize="60" fill="white" textAnchor="middle" dy=".35em">S</text>
               </svg>
-              Shiksha
+              Shishka AI
             </div>
             <p style={{ fontSize: '13px', color: '#4a4a5a', marginTop: '8px', maxWidth: '200px' }}>
               The generative engine for educational content.
@@ -90,7 +90,7 @@ function LinearFooter() {
           gap: '16px'
         }}>
           <div style={{ fontSize: '12px', color: '#4a4a5a' }}>
-            © {new Date().getFullYear()} Shiksha. All rights reserved.
+            © {new Date().getFullYear()} Shishka AI. All rights reserved.
           </div>
           <div style={{ fontSize: '12px', color: '#4a4a5a', display: 'flex', gap: '16px' }}>
             <a href="#" style={{ transition: 'color var(--transition-fast)' }} onMouseEnter={e => e.currentTarget.style.color = '#8b8b9a'} onMouseLeave={e => e.currentTarget.style.color = '#4a4a5a'}>Privacy</a>

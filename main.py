@@ -18,6 +18,7 @@ from google.genai import types
 import edge_tts
 from werkzeug.utils import secure_filename
 
+import config
 from prompts import script_system_prompt, animation_system_prompt, pdf_system_prompt
 from video import merge_with_ffmpeg, merge_videos
 from animation import generate_html, record_animation
@@ -29,23 +30,30 @@ logger = logging.getLogger(__name__)
 
 # ── API clients ──────────────────────────────────────────────────────────────
 
-_kodekloud_api_key = os.getenv("KODEKLOUD_API_KEY")
-_kodekloud_backup_api_key = os.getenv("KODEKLOUD_API_KEY_BACKUP")
-_kodekloud_base_url = os.getenv("KODEKLOUD_BASE_URL", "https://api.ai.kodekloud.com/v1")
-_kodekloud_model = os.getenv("KODEKLOUD_MODEL", "google/gemini-3.1-pro-preview")
+_kodekloud_api_key = config.KODEKLOUD_API_KEY
+_kodekloud_backup_api_key = config.KODEKLOUD_API_KEY_BACKUP
+_kodekloud_base_url = config.KODEKLOUD_BASE_URL
+_kodekloud_model = config.KODEKLOUD_MODEL
 _kodekloud_client = (
-    OpenAI(api_key=_kodekloud_api_key, base_url=_kodekloud_base_url)
+    OpenAI(api_key=_kodekloud_api_key, base_url=_kodekloud_base_url, timeout=config.LLM_TIMEOUT)
     if _kodekloud_api_key
     else None
 )
 _kodekloud_backup_client = (
-    OpenAI(api_key=_kodekloud_backup_api_key, base_url=_kodekloud_base_url)
+    OpenAI(api_key=_kodekloud_backup_api_key, base_url=_kodekloud_base_url, timeout=config.LLM_TIMEOUT)
     if _kodekloud_backup_api_key
     else None
 )
 
-_google_api_key = os.getenv("GOOGLE_API_KEY")
-_genai_client = genai.Client(api_key=_google_api_key) if _google_api_key else None
+_google_api_key = config.GOOGLE_API_KEY
+_genai_client = (
+    genai.Client(
+        api_key=_google_api_key,
+        http_options=types.HttpOptions(timeout=config.LLM_TIMEOUT * 1000),
+    )
+    if _google_api_key
+    else None
+)
 
 # Startup validation
 if _kodekloud_client:
@@ -289,7 +297,7 @@ async def validate_code_in_browser(js_code):
     logs = []
     page.on("console", lambda msg: logs.append(msg.text))
     try:
-        await page.goto(f"file://{html_path}")
+        await page.goto(f"file://{html_path}", {"timeout": 30000})
         await asyncio.sleep(3)
         success = await page.evaluate("window.__animationLoaded === true")
     except Exception:
@@ -315,8 +323,11 @@ def generate_placeholder_video(segment_id, duration, seg_folder):
             ],
             check=True,
             capture_output=True,
+            timeout=config.FFMPEG_TIMEOUT,
         )
         logger.info("Placeholder video created for segment %s", segment_id)
+    except subprocess.TimeoutExpired:
+        logger.error("Placeholder video creation timed out for segment %s", segment_id)
     except subprocess.CalledProcessError as e:
         logger.error("Failed to create placeholder video: %s", e.stderr.decode(errors="replace"))
 

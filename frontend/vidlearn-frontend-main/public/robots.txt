@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /$
+Allow: /login
+Allow: /signup
+Disallow: /tool
+Disallow: /download-video
+Disallow: /download-pdf
+Disallow: /history
+Disallow: /progress
+
+Sitemap: https://gyani.mydevweb.xyz/sitemap.xml

@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-
-const API = import.meta.env.VITE_API_URL;
+import { apiFetch } from "../../api";
 
 function Signup() {
   const [username, setUsername] = useState("");
@@ -17,7 +16,7 @@ function Signup() {
     setLoading(true);
 
     try {
-      const res = await fetch(`${API}/signup`, {
+      const res = await apiFetch("/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, email, password }),
@@ -44,7 +43,7 @@ function Signup() {
           <Link to="/" style={{display: 'inline-block'}}>
             <svg width="40" height="40" viewBox="0 0 100 100">
               <rect width="100" height="100" rx="20" fill="var(--accent)" />
-              <text x="50%" y="50%" fontFamily="Inter, sans-serif" fontWeight="bold" fontSize="60" fill="white" textAnchor="middle" dy=".35em">G</text>
+              <text x="50%" y="50%" fontFamily="Inter, sans-serif" fontWeight="bold" fontSize="60" fill="white" textAnchor="middle" dy=".35em">S</text>
             </svg>
           </Link>
         </div>

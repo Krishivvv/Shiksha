@@ -10,7 +10,7 @@ function AboutText() {
       </div>
       <div className="about-col">
         <p>
-          Shiksha started as a hackathon question: what if a student could type one
+          Shishka AI started as a hackathon question: what if a student could type one
           sentence and get back a full animated lesson? Three AI models, a headless
           browser, and a few all-nighters later — it works.
         </p>
