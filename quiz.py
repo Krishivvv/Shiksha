@@ -40,7 +40,9 @@ def generate_quiz(script):
             text,
             re.DOTALL,
         )
-        return questions[:10] if len(questions) >= 10 else []
+        # Accept any reasonably sized quiz instead of demanding exactly 10 —
+        # LLM output length varies and a 6-question quiz beats a failure.
+        return questions[:10] if len(questions) >= 4 else []
     except Exception:
         logger.exception("Quiz generation failed")
         return []

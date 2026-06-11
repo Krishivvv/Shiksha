@@ -102,6 +102,7 @@ Talisman(
     session_cookie_secure=config.IS_PRODUCTION,
     frame_options="DENY",
     referrer_policy="strict-origin-when-cross-origin",
+    permissions_policy="camera=(), microphone=(), geolocation=(), payment=(), browsing-topics=()",
 )
 
 csrf = CSRFProtect(app)
@@ -109,10 +110,6 @@ csrf = CSRFProtect(app)
 
 @app.after_request
 def _security_response(response):
-    # Permissions-Policy (override Talisman's default with a stricter policy).
-    response.headers["Permissions-Policy"] = (
-        "camera=(), microphone=(), geolocation=(), payment=(), browsing-topics=()"
-    )
     # Hand the CSRF token to the SPA via a readable cookie — but never on cacheable
     # static assets (a Set-Cookie there would defeat CDN/browser caching).
     path = request.path
@@ -362,6 +359,10 @@ def generate_video_endpoint():
 @app.route("/task-status/<task_id>", methods=["GET"])
 @login_required
 def task_status(task_id):
+    # Only the task owner may read its progress.
+    video_rec = Video.query.filter_by(task_id=task_id).first()
+    if not video_rec or video_rec.user_id != current_user.id:
+        return jsonify({"error": "Not found."}), 404
     info = get_progress(user_id=task_id)
     return jsonify(info), 200
 
