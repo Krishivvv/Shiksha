@@ -36,8 +36,10 @@ function Login() {
   };
 
   return (
-    <div className="auth-wrapper fade-in">
-      <div className="card auth-card">
+    <div className="auth-wrapper fade-in" style={{ position: "relative", overflow: "hidden" }}>
+      <div className="aurora-orb" style={{ width: "380px", height: "380px", top: "-100px", left: "-120px", background: "rgba(79,110,247,0.45)" }} />
+      <div className="aurora-orb" style={{ width: "320px", height: "320px", bottom: "-80px", right: "-100px", background: "rgba(122,92,255,0.4)", animationDelay: "-7s" }} />
+      <div className="card auth-card" style={{ position: "relative", backdropFilter: "blur(8px)", background: "rgba(17,17,19,0.85)" }}>
         <div style={{textAlign: 'center', marginBottom: '24px'}}>
           <Link to="/" style={{display: 'inline-block'}}>
             <svg width="40" height="40" viewBox="0 0 100 100">

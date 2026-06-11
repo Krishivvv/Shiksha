@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import LinearNav from "../Home/components/LinearNav";
 import LinearFooter from "../Home/components/LinearFooter";
+import ParticleField from "../../components/ParticleField";
 
 function NotFound() {
   return (
@@ -16,23 +17,28 @@ function NotFound() {
           justifyContent: "center",
           textAlign: "center",
           padding: "120px 24px 80px",
+          position: "relative",
+          overflow: "hidden",
         }}
       >
+        <ParticleField />
+        <div className="aurora-orb" style={{ width: "360px", height: "360px", top: "10%", left: "-100px", background: "rgba(79,110,247,0.4)" }} />
         <div
+          className="float"
           style={{
             fontFamily: "var(--font-mono)",
-            fontSize: "14px",
-            letterSpacing: "0.08em",
-            color: "var(--accent)",
-            textTransform: "uppercase",
-            marginBottom: "16px",
+            fontSize: "clamp(90px, 16vw, 160px)",
+            fontWeight: 700,
+            letterSpacing: "-0.05em",
+            lineHeight: 1,
+            marginBottom: "8px",
           }}
         >
-          Error 404
+          <span className="gradient-text">404</span>
         </div>
         <h1
           style={{
-            fontSize: "clamp(40px, 6vw, 64px)",
+            fontSize: "clamp(28px, 4vw, 40px)",
             fontWeight: 700,
             letterSpacing: "-0.03em",
             color: "white",

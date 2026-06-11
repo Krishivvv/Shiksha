@@ -64,6 +64,28 @@ input, textarea, select { font-family: inherit; }
   --transition-fast: 150ms ease;
   --transition-normal: 200ms ease;
   --transition-slow: 300ms ease;
+
+  /* Aliases used by the Tool page stylesheet */
+  --bg: var(--bg-primary);
+  --bg-2: var(--bg-surface);
+  --bg-3: var(--bg-elevated);
+  --text: var(--text-primary);
+  --text-2: var(--text-secondary);
+  --text-3: var(--text-muted);
+  --glass: rgba(255,255,255,0.04);
+  --glass-hover: rgba(255,255,255,0.08);
+  --glass-border: rgba(255,255,255,0.09);
+  --glass-border-hover: rgba(255,255,255,0.2);
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --r-xl: 18px;
+  --t: all 180ms ease;
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --font: 'Inter', sans-serif;
+  --accent-2: #9a6bff;
+  --accent-3: #38bdf8;
+  --accent-gradient: linear-gradient(135deg, #4f6ef7 0%, #7a5cff 100%);
 }
 
 /* ── Section Container ─────────────────────────────────────────────────── */
@@ -481,4 +503,400 @@ textarea.input-field {
 
   .tool-container { padding: 72px 16px 24px; }
   .section-container { padding: 0 16px; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Motion layer — gradient text, auroras, spotlight cards, marquee,
+   pipeline stepper, quiz, toasts. Everything respects reduced-motion.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Animated gradient text ────────────────────────────────────────────── */
+@keyframes gradient-pan {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.gradient-text {
+  background: linear-gradient(100deg, #f1f1f3 20%, var(--accent) 40%, var(--accent-2) 55%, var(--accent-3) 70%, #f1f1f3 85%);
+  background-size: 250% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: gradient-pan 7s ease-in-out infinite;
+}
+
+/* ── Aurora orbs (auth pages, hero) ────────────────────────────────────── */
+@keyframes aurora-drift {
+  0%   { transform: translate(0, 0) scale(1); }
+  33%  { transform: translate(60px, -50px) scale(1.15); }
+  66%  { transform: translate(-50px, 40px) scale(0.9); }
+  100% { transform: translate(0, 0) scale(1); }
+}
+.aurora-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.35;
+  pointer-events: none;
+  animation: aurora-drift 18s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* ── Floating ──────────────────────────────────────────────────────────── */
+@keyframes float-y {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-12px); }
+}
+.float { animation: float-y 6s ease-in-out infinite; }
+
+/* ── Typewriter caret ──────────────────────────────────────────────────── */
+@keyframes caret-blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+.type-caret {
+  display: inline-block;
+  width: 8px;
+  height: 1.1em;
+  margin-left: 2px;
+  background: var(--accent);
+  vertical-align: text-bottom;
+  animation: caret-blink 1s step-end infinite;
+  border-radius: 1px;
+}
+
+/* ── Spotlight cards (mouse-tracking glow, driven by --mx / --my) ──────── */
+.spotlight-card {
+  position: relative;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  transition: border-color var(--transition-normal), transform var(--transition-normal), box-shadow var(--transition-normal);
+}
+.spotlight-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(420px circle at var(--mx, 50%) var(--my, 50%), rgba(79,110,247,0.12), transparent 65%);
+  opacity: 0;
+  transition: opacity 300ms ease;
+  pointer-events: none;
+}
+.spotlight-card:hover { border-color: rgba(79,110,247,0.35); transform: translateY(-3px); box-shadow: 0 18px 48px rgba(0,0,0,0.45); }
+.spotlight-card:hover::before { opacity: 1; }
+
+/* ── Shine sweep on primary CTAs ───────────────────────────────────────── */
+.btn-shine { position: relative; overflow: hidden; }
+.btn-shine::after {
+  content: "";
+  position: absolute;
+  top: 0; left: -80%;
+  width: 50%; height: 100%;
+  background: linear-gradient(105deg, transparent, rgba(255,255,255,0.35), transparent);
+  transform: skewX(-20deg);
+  transition: left 600ms ease;
+  pointer-events: none;
+}
+.btn-shine:hover::after { left: 130%; }
+
+/* ── Marquee (logo / topic ribbon) ─────────────────────────────────────── */
+@keyframes marquee-x { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.marquee {
+  display: flex;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+}
+.marquee-track {
+  display: flex;
+  flex-shrink: 0;
+  gap: 48px;
+  padding-right: 48px;
+  align-items: center;
+  animation: marquee-x 34s linear infinite;
+  will-change: transform;
+}
+.marquee:hover .marquee-track { animation-play-state: paused; }
+
+/* ── Equalizer bars (TTS visual) ───────────────────────────────────────── */
+@keyframes eq-bounce { 0%, 100% { transform: scaleY(0.35); } 50% { transform: scaleY(1); } }
+.eq-bar {
+  width: 3px;
+  border-radius: 2px;
+  background: var(--accent);
+  transform-origin: bottom;
+  animation: eq-bounce 0.9s ease-in-out infinite;
+}
+
+/* ── Pulse glow ────────────────────────────────────────────────────────── */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(79,110,247,0.45); }
+  50%      { box-shadow: 0 0 0 8px rgba(79,110,247,0); }
+}
+.pulse-glow { animation: pulse-glow 2s ease-out infinite; }
+
+/* ── Generation pipeline stepper ───────────────────────────────────────── */
+.pipeline {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  position: relative;
+  margin: 8px 0 4px;
+}
+.pipeline-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  position: relative;
+  z-index: 1;
+}
+.pipeline-dot {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  color: var(--text-muted);
+  transition: all 400ms var(--ease);
+}
+.pipeline-step.is-active .pipeline-dot {
+  background: rgba(79,110,247,0.15);
+  border-color: var(--accent);
+  color: var(--accent);
+  animation: pulse-glow 2s ease-out infinite;
+  transform: scale(1.12);
+}
+.pipeline-step.is-done .pipeline-dot {
+  background: rgba(62,207,142,0.12);
+  border-color: var(--success);
+  color: var(--success);
+}
+.pipeline-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  transition: color 300ms ease;
+  text-align: center;
+}
+.pipeline-step.is-active .pipeline-label { color: var(--text-primary); }
+.pipeline-step.is-done .pipeline-label { color: var(--success); }
+.pipeline-connector {
+  position: absolute;
+  top: 17px;
+  left: calc(50% + 22px);
+  right: calc(-50% + 22px);
+  height: 2px;
+  background: var(--border-strong);
+  overflow: hidden;
+  border-radius: 2px;
+}
+.pipeline-connector::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, var(--success), var(--accent));
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 600ms var(--ease);
+}
+.pipeline-step.is-done .pipeline-connector::after { transform: scaleX(1); }
+@media (max-width: 600px) {
+  .pipeline-label { font-size: 9px; }
+  .pipeline-dot { width: 28px; height: 28px; font-size: 12px; }
+  .pipeline-connector { top: 14px; }
+}
+
+/* Animated progress shimmer bar under the pipeline */
+@keyframes progress-slide { 0% { left: -35%; } 100% { left: 100%; } }
+.progress-track {
+  position: relative;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--bg-elevated);
+  overflow: hidden;
+  margin-top: 22px;
+}
+.progress-track::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 35%;
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  animation: progress-slide 1.4s ease-in-out infinite;
+}
+
+/* ── Quiz ──────────────────────────────────────────────────────────────── */
+@keyframes pop-in {
+  0%   { opacity: 0; transform: scale(0.96) translateY(10px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+.quiz-card { animation: pop-in 350ms var(--ease); }
+.quiz-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  padding: 13px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border-strong);
+  background: #16161a;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.5;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.quiz-option:hover:not(:disabled) {
+  border-color: rgba(79,110,247,0.5);
+  background: rgba(79,110,247,0.06);
+  color: var(--text-primary);
+  transform: translateX(3px);
+}
+.quiz-option.is-correct {
+  border-color: var(--success);
+  background: rgba(62,207,142,0.1);
+  color: var(--success);
+}
+.quiz-option.is-wrong {
+  border-color: #ff6b6b;
+  background: rgba(255,80,80,0.08);
+  color: #ff9b9b;
+}
+.quiz-option:disabled { cursor: default; }
+.quiz-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 1px solid var(--border-strong);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+.quiz-progress-bar {
+  height: 4px;
+  border-radius: 4px;
+  background: var(--bg-elevated);
+  overflow: hidden;
+}
+.quiz-progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: var(--accent-gradient);
+  transition: width 400ms var(--ease);
+}
+
+/* Score ring */
+.score-ring { transform: rotate(-90deg); }
+.score-ring circle { transition: stroke-dashoffset 900ms var(--ease); }
+
+/* ── Toasts ────────────────────────────────────────────────────────────── */
+.toast-stack {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 99999;
+  max-width: min(380px, calc(100vw - 32px));
+}
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(24px) scale(0.97); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: rgba(20,20,24,0.92);
+  border: 1px solid var(--border-strong);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  animation: toast-in 260ms var(--ease);
+}
+.toast-success { border-color: rgba(62,207,142,0.4); }
+.toast-error { border-color: rgba(255,80,80,0.4); }
+.toast-info { border-color: rgba(79,110,247,0.4); }
+.toast-icon { flex-shrink: 0; margin-top: 1px; }
+.toast-success .toast-icon { color: var(--success); }
+.toast-error .toast-icon { color: #ff6b6b; }
+.toast-info .toast-icon { color: var(--accent); }
+
+/* ── Status badges in history ──────────────────────────────────────────── */
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.status-dot.completed { background: var(--success); }
+.status-dot.processing { background: var(--accent); animation: caret-blink 1.2s ease infinite; }
+.status-dot.failed { background: #ff6b6b; }
+
+/* ── Bento tilt hover ──────────────────────────────────────────────────── */
+.tilt-hover { transition: transform 300ms var(--ease), box-shadow 300ms var(--ease); transform-style: preserve-3d; }
+
+/* ── Range slider (cross-browser polish) ───────────────────────────────── */
+input[type="range"].styled-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 5px;
+  border-radius: 5px;
+  background: linear-gradient(90deg, var(--accent) var(--range-fill, 10%), var(--bg-elevated) var(--range-fill, 10%));
+  outline: none;
+}
+input[type="range"].styled-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid var(--accent);
+  box-shadow: 0 0 12px rgba(79,110,247,0.6);
+  cursor: pointer;
+  transition: transform var(--transition-fast);
+}
+input[type="range"].styled-range::-webkit-slider-thumb:hover { transform: scale(1.2); }
+input[type="range"].styled-range::-moz-range-thumb {
+  width: 16px; height: 16px; border-radius: 50%;
+  background: #fff; border: 3px solid var(--accent);
+  box-shadow: 0 0 12px rgba(79,110,247,0.6); cursor: pointer;
+}
+
+/* ── Keyboard focus visibility (a11y) ──────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ── Reduced motion: switch the experience to calm ─────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  html { scroll-behavior: auto; }
+  .animate, .animate-left, .animate-right { opacity: 1; transform: none; }
 }

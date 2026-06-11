@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 
 function LinearNav() {
   const [scrolled, setScrolled] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {

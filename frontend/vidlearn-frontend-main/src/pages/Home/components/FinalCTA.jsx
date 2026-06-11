@@ -25,7 +25,7 @@ function FinalCTA() {
           letterSpacing: '-0.04em',
           marginBottom: '20px'
         }}>
-          Built for the future. <br/> Available today.
+          Built for the future. <br/> <span className="gradient-text">Available today.</span>
         </h2>
         <p className="animate" style={{
           fontSize: '18px',
@@ -42,7 +42,7 @@ function FinalCTA() {
           gap: '12px',
           transitionDelay: '200ms'
         }}>
-          <Link to="/tool" className="btn btn-primary btn-large">Get Started for Free</Link>
+          <Link to="/tool" className="btn btn-primary btn-large btn-shine">Get Started for Free</Link>
           <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-large">View GitHub</a>
         </div>
 

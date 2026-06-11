@@ -2,12 +2,17 @@ import React, { useState, useEffect, useRef } from "react";
 import ToolNav from "./components/ToolNav";
 import PromptBox from "./components/PromptBox";
 import VideoBox from "./components/VideoBox";
+import GenerationPipeline from "./components/GenerationPipeline";
+import QuizPanel from "./components/QuizPanel";
 import LinearNav from "../Home/components/LinearNav";
 import LinearFooter from "../Home/components/LinearFooter";
+import ConfettiBurst from "../../components/ConfettiBurst";
+import { useToast } from "../../components/Toast";
 import { API, apiFetch } from "../../api";
 import "./Tool.css";
 
 function Tool() {
+  const toast = useToast();
   const [open, setOpen] = useState(false);
   const [prompt, setPrompt] = useState("");
   const [file, setFile] = useState(null);
@@ -18,9 +23,17 @@ function Tool() {
   const [progress, setProgress] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
 
+  // Quiz state — script comes back in the completed task payload
+  const [script, setScript] = useState(null);
+  const [videoId, setVideoId] = useState(null);
+  const [quiz, setQuiz] = useState(null);
+  const [quizLoading, setQuizLoading] = useState(false);
+  const [celebrate, setCelebrate] = useState(false);
+
   // Refs for the active task being polled
   const taskIdRef = useRef(null);
   const pollIntervalRef = useRef(null);
+  const videoIdRef = useRef(null);
 
   // ── Auth guard + fetch history on mount ────────────────────────────────
   useEffect(() => {
@@ -81,7 +94,11 @@ function Tool() {
               ...prev,
             ]);
           }
+          if (data.script) setScript(data.script);
           setLoading(false);
+          setCelebrate(true);
+          window.setTimeout(() => setCelebrate(false), 4500);
+          toast.success("Your lesson is ready — video, notes, and quiz await.");
         } else if (data.state === "failed") {
           clearInterval(pollIntervalRef.current);
           pollIntervalRef.current = null;
@@ -89,7 +106,7 @@ function Tool() {
           const display = msg.includes("RESOURCE_EXHAUSTED") || msg.includes("quota")
             ? "API quota exceeded. The team needs to refresh the Gemini API key."
             : msg.length > 200 ? "Generation failed. Check backend logs." : msg;
-          alert(display);
+          toast.error(display, 7000);
           setLoading(false);
         }
       } catch {
@@ -124,21 +141,24 @@ function Tool() {
       const data = await res.json();
       if (res.ok) {
         setFile(f);
+        toast.info(`Attached ${f.name}`);
       } else {
-        alert(data.error || "Upload failed");
+        toast.error(data.error || "Upload failed");
       }
     } catch {
-      alert("Network error uploading file");
+      toast.error("Network error uploading file");
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!prompt) return alert("Please enter a prompt.");
+    if (!prompt) return toast.error("Please enter a prompt first.");
 
     setLoading(true);
     setVideoUrl("");
     setProgress(null);
+    setScript(null);
+    setQuiz(null);
 
     const form = new FormData();
     const refined_prompt = `${prompt}. minimum duration of video: ${timeValue} minutes`;
@@ -160,6 +180,10 @@ function Tool() {
       if (res.ok || res.status === 202) {
         // Backend returns { task_id, video_id } and runs generation in bg
         const taskId = data.task_id;
+        if (data.video_id) {
+          setVideoId(data.video_id);
+          videoIdRef.current = data.video_id;
+        }
         if (taskId) {
           startPolling(taskId);
         } else {
@@ -168,20 +192,47 @@ function Tool() {
             const url = `${API}/download-video?filename=${encodeURIComponent(data.filename)}`;
             setVideoUrl(url);
             setHistory((prev) => [
-              { filename: data.filename, url, prompt_text: refined_prompt },
+              { filename: data.filename, url, prompt_text: refined_prompt, status: "completed" },
               ...prev,
             ]);
           }
           setLoading(false);
         }
       } else {
-        alert(data.error || "Generation failed");
+        toast.error(data.error || "Generation failed");
         setLoading(false);
       }
     } catch (err) {
       console.error(err);
-      alert("Network error");
+      toast.error("Network error — please try again.");
       setLoading(false);
+    }
+  };
+
+  // ── Quiz generation (uses the script captured from the completed task) ──
+  const handleGenerateQuiz = async () => {
+    if (!script) {
+      toast.error("No script available yet — generate a video first.");
+      return;
+    }
+    setQuizLoading(true);
+    try {
+      const res = await apiFetch("/generate-quiz", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ script, video_id: videoId || videoIdRef.current }),
+      });
+      const data = await res.json();
+      if (res.ok && data.quiz && data.quiz.length) {
+        setQuiz(data.quiz);
+        toast.success(`Quiz ready — ${data.quiz.length} questions.`);
+      } else {
+        toast.error(data.error || "Quiz generation failed. Try again in a moment.");
+      }
+    } catch {
+      toast.error("Network error generating quiz.");
+    } finally {
+      setQuizLoading(false);
     }
   };
 
@@ -196,6 +247,7 @@ function Tool() {
 
   return (
     <div className="tool-layout">
+      {celebrate && <ConfettiBurst />}
       <LinearNav />
       <ToolNav open={open} handleNav={handleNav} history={history} />
 
@@ -211,7 +263,7 @@ function Tool() {
           <div>
             <h2>
               Generate an{" "}
-              <span style={{ color: "var(--accent)" }}>educational video</span>
+              <span className="gradient-text">educational video</span>
             </h2>
             <p>
               Describe any topic and Shishka AI will build an animated lesson with
@@ -234,38 +286,21 @@ function Tool() {
           file={file}
         />
 
-        {loading && (
-          <div className="card" style={{ marginTop: "24px" }}>
-            <div className="progress-area">
-              <div className="spinner" />
-              <div className="badge badge-processing">Processing</div>
-              <p className="progress-step">
-                {progress?.step || "Initializing generation…"}
-              </p>
-              <p className="progress-msg">
-                {progress?.message ||
-                  "Setting up your video pipeline. This may take a few minutes."}
-              </p>
-            </div>
-            <div
-              style={{
-                marginTop: "24px",
-                display: "flex",
-                flexDirection: "column",
-                gap: "8px",
-              }}
-            >
-              <div className="skeleton" style={{ height: "16px", width: "100%" }} />
-              <div className="skeleton" style={{ height: "16px", width: "80%" }} />
-              <div className="skeleton" style={{ height: "16px", width: "90%" }} />
-            </div>
+        {loading && <GenerationPipeline progress={progress} />}
+
+        {videoUrl && !loading && (
+          <div style={{ marginTop: "24px" }} className="quiz-card">
+            <VideoBox
+              videoUrl={videoUrl}
+              onGenerateQuiz={script ? handleGenerateQuiz : null}
+              quizLoading={quizLoading}
+              quizReady={Boolean(quiz)}
+            />
           </div>
         )}
 
-        {videoUrl && !loading && (
-          <div style={{ marginTop: "24px" }}>
-            <VideoBox videoUrl={videoUrl} />
-          </div>
+        {quiz && !loading && (
+          <QuizPanel questions={quiz} onClose={() => setQuiz(null)} />
         )}
       </div>
 

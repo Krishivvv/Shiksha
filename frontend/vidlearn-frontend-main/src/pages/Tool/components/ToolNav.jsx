@@ -46,8 +46,8 @@ function ToolNav({ open, handleNav, history }) {
         {history.length === 0 && (
           <p style={{color: 'var(--text-muted)', fontSize: '13px', textAlign: 'center', marginTop: '40px'}}>No videos generated yet.</p>
         )}
-        {history.map((item) => (
-          <ToolVideo key={item.filename} vid={item.url} prompt={item.prompt_text} />
+        {history.map((item, i) => (
+          <ToolVideo key={item.id ?? `${item.filename}-${i}`} vid={item.url} prompt={item.prompt_text} status={item.status} />
         ))}
       </div>
 
