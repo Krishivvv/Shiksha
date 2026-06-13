@@ -6,6 +6,9 @@
 **/.env.local
 !**/.env.example
 
+# ── Tooling / local config ──
+.claude/
+
 # ── Python ──
 __pycache__/
 *.pyc

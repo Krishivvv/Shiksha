@@ -11,12 +11,12 @@ function AboutText() {
       <div className="about-col">
         <p>
           Shishka AI started as a hackathon question: what if a student could type one
-          sentence and get back a full animated lesson? Three AI models, a headless
+          sentence and get back a full animated lesson? A language model, a headless
           browser, and a few all-nighters later — it works.
         </p>
         <p>
-          GPT-4o writes the script. Gemini sharpens it. p5.js animates every
-          scene. OpenAI TTS narrates it. Gemini builds the quiz. FFmpeg assembles
+          An LLM writes and sharpens the script. p5.js animates every
+          scene. Neural TTS narrates it. Gemini builds the quiz. FFmpeg assembles
           the final video. You just type.
         </p>
       </div>

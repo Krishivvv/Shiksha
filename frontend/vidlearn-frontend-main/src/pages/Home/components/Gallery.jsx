@@ -12,8 +12,8 @@ function Gallery() {
       <div className="gallery">
         <Card
           icon={<LuWandSparkles />}
-          title="Three AI models"
-          text="GPT-4o scripts it. Gemini refines the language. Gemini writes the quiz. Each model does what it's best at."
+          title="LLM-powered"
+          text="A large language model scripts the lesson and refines the language. Gemini writes the quiz. Each step uses the model that does it best."
         />
         <Card
           icon={<LuClapperboard />}
