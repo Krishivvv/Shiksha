@@ -1,7 +1,6 @@
 # VCS & tooling
 .git
 .github
-.claude
 .gitignore
 
 # Python caches / local envs
