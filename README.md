@@ -4,7 +4,7 @@
 
 **Type a topic → get a narrated, animated lesson video with a quiz and PDF notes.**
 
-[**▶ Live demo**](https://your-demo-link.example.com) · [Architecture](#architecture) · [Quickstart](#quickstart) · [Deployment](DEPLOYMENT.md)
+[**▶ Live demo**](https://krishivvv-shikshaai.hf.space) · [Architecture](#architecture) · [Quickstart](#quickstart) · [Deployment](DEPLOYMENT.md)
 
 ![Python](https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white)
 ![Flask](https://img.shields.io/badge/Flask-000000?logo=flask&logoColor=white)
@@ -12,6 +12,7 @@
 ![Redis](https://img.shields.io/badge/Redis%20%2B%20RQ-DC382D?logo=redis&logoColor=white)
 ![FFmpeg](https://img.shields.io/badge/FFmpeg-007808?logo=ffmpeg&logoColor=white)
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
+[![Live on HF Spaces](https://img.shields.io/badge/🤗%20Spaces-Live%20demo-yellow)](https://krishivvv-shikshaai.hf.space)
 
 </div>
 
