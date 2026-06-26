@@ -1,12 +1,48 @@
-import signal
-import logging
-from pyppeteer import launch
+"""Low-level helpers shared by the pipeline: a signal-safe headless-Chrome
+launcher, a thread-safe async runner, a single source of truth for the Chrome
+executable path, and a recursive folder-clearer."""
+
 import asyncio
-import threading
-from pathlib import Path
+import logging
 import os
+import shutil
+import signal
+import threading
+from functools import lru_cache
+from pathlib import Path
+
+from pyppeteer import launch
 
 logger = logging.getLogger(__name__)
+
+
+@lru_cache(maxsize=1)
+def get_chrome_path() -> str:
+    """Resolve the Chrome/Chromium executable once, cross-platform.
+
+    Honours ``CHROME_PATH`` first, then PATH lookups, then well-known install
+    locations. Falls back to a bare ``"chrome"`` so a misconfigured env fails
+    loudly at launch rather than at import.
+    """
+    env_path = os.getenv("CHROME_PATH")
+    if os.name == "nt":
+        candidates = [
+            env_path,
+            shutil.which("chrome"),
+            r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+            r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+        ]
+        return next((p for p in candidates if p and os.path.exists(p)), None) or "chrome"
+    return (
+        env_path
+        or shutil.which("google-chrome-stable")
+        or shutil.which("google-chrome")
+        or shutil.which("chromium-browser")
+        or shutil.which("chromium")
+        or shutil.which("chrome")
+        or "/usr/bin/google-chrome-stable"
+    )
+
 
 async def safe_launch(*args, **kwargs):
     original_signal = signal.signal

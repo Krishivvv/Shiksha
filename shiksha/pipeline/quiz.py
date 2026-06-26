@@ -5,8 +5,8 @@ import re
 from google import genai
 from google.genai import types
 
-import config
-from prompts import quiz_system_prompt
+from shiksha import config
+from shiksha.core.prompts import quiz_system_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +49,6 @@ def generate_quiz(script):
 
 
 if __name__ == "__main__":
-    with open("scripts.json", "r", encoding="utf-8") as f:
+    with open("scripts.json", encoding="utf-8") as f:
         script = json.load(f)
     print(generate_quiz(script))

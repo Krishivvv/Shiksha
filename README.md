@@ -1,128 +1,131 @@
 <div align="center">
-  <h1>🧠 Shishka AI</h1>
-  <p><strong>Type a topic. Get a full animated lesson — script, visuals, voiceover, and a quiz.</strong></p>
 
-  <p>
-    <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python" />
-    <img src="https://img.shields.io/badge/Flask-000000?style=for-the-badge&logo=flask&logoColor=white" alt="Flask" />
-    <img src="https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React" />
-    <img src="https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white" alt="Vite" />
-    <img src="https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white" alt="Redis" />
-    <img src="https://img.shields.io/badge/FFmpeg-007808?style=for-the-badge&logo=ffmpeg&logoColor=white" alt="FFmpeg" />
-  </p>
+# 🧠 Shiksha
+
+**Type a topic → get a narrated, animated lesson video with a quiz and PDF notes.**
+
+[**▶ Live demo**](https://your-demo-link.example.com) · [Architecture](#architecture) · [Quickstart](#quickstart) · [Deployment](DEPLOYMENT.md)
+
+![Python](https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white)
+![Flask](https://img.shields.io/badge/Flask-000000?logo=flask&logoColor=white)
+![React](https://img.shields.io/badge/React-19-20232A?logo=react&logoColor=61DAFB)
+![Redis](https://img.shields.io/badge/Redis%20%2B%20RQ-DC382D?logo=redis&logoColor=white)
+![FFmpeg](https://img.shields.io/badge/FFmpeg-007808?logo=ffmpeg&logoColor=white)
+![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
+
 </div>
 
-<br />
+> Shiksha turns one prompt (or an uploaded PDF) into a complete educational video: an LLM writes a segmented script, generates `p5.js` animation code that is **safety-checked and rendered in a headless browser**, narrates it with neural TTS, and FFmpeg stitches the segments into a final `.mp4` — then it generates a quiz and a PDF of study notes.
 
-> **Shishka AI** turns a single text prompt (or an uploaded PDF) into a complete educational video: it writes the script, generates and renders `p5.js` animations frame-by-frame in a headless browser, narrates them with neural TTS, stitches everything together with FFmpeg, and generates a quiz and PDF study notes at the end.
-
----
-
-## ✨ Features
-
-- 🎬 **Automated video pipeline** — prompt → script → animation → voiceover → final `.mp4`.
-- 🗣️ **Neural narration** via `edge-tts`.
-- 🧠 **Auto-generated quizzes** and **PDF study notes** for every lesson.
-- 🧪 **Headless animation rendering** with Pyppeteer + CCapture.js (p5.js).
-- 📊 **Live progress** streamed to the UI while a video is generated.
-- 🔐 **Accounts & history** — sign up, log in, and revisit past generations.
+<!-- Replace with a 10–15s screen capture of: prompt → live pipeline progress → final video playing. -->
+![Demo GIF placeholder](docs/demo.gif)
 
 ---
 
-## 🏗️ Architecture & Tech Stack
+## Architecture
 
-| Component | Technology | Role |
-| :--- | :--- | :--- |
-| **Frontend** | React 19 + Vite | Landing page, auth, and the generation tool (SPA). |
-| **Backend** | Python / Flask | REST API, auth, and pipeline orchestration. |
-| **Task queue** | RQ + Redis | Runs the heavy generation pipeline off the request path. |
-| **Database** | SQLite (dev) / PostgreSQL (prod) | Users, videos, quizzes. |
-| **Animation** | p5.js, Pyppeteer, CCapture | Generates code and renders it in headless Chrome. |
-| **LLMs** | Google Gemini / KodeKloud (OpenAI-compatible) | Scripts, animation code, and quiz questions. |
-| **Voice** | edge-tts | Converts the script to speech. |
-| **Video** | FFmpeg | Merges frames + audio into the final video. |
-| **Storage** | Local FS (dev) / S3 or Cloudflare R2 (prod) | Stores generated artifacts. |
+```mermaid
+flowchart LR
+    U[User / React SPA] -->|POST /generate-video| API[Flask API<br/>gunicorn wsgi:app]
+    API -->|enqueue| Q[(Redis + RQ queue)]
+    API -->|users, videos, quizzes| DB[(Postgres)]
+    API -.serves.-> SPA[Compiled SPA<br/>frontend/build]
+
+    Q --> W[RQ Worker]
+
+    subgraph Pipeline [Render pipeline · runs in worker]
+      direction TB
+      L[LLM<br/>KodeKloud → Gemini] --> S[JSON script]
+      S --> A[p5.js codegen<br/>static scan + CSP sandbox]
+      A --> C[Headless Chrome<br/>frame capture .webm]
+      C --> T[Edge-TTS voiceover]
+      T --> F[FFmpeg mux + concat → .mp4]
+      F --> P[FPDF study notes]
+    end
+
+    W --> Pipeline
+    W -->|artifacts| OBJ[(S3 / Cloudflare R2)]
+    W -->|progress| Q
+    API -->|GET /task-status| Q
+    API --> OBJ
+```
+
+| Layer | Tech | Where |
+|---|---|---|
+| Frontend | React 19 + Vite (SPA) | [`frontend/vidlearn-frontend-main/`](frontend/vidlearn-frontend-main/) → builds to `frontend/build/` |
+| API / web | Flask + gunicorn | [`shiksha/api/`](shiksha/api/), [`wsgi.py`](wsgi.py) |
+| Pipeline | LLM → p5.js → Pyppeteer → Edge-TTS → FFmpeg → FPDF | [`shiksha/pipeline/`](shiksha/pipeline/) |
+| Async | RQ + Redis (thread fallback) | [`shiksha/services/tasks.py`](shiksha/services/tasks.py) |
+| Data | Postgres (psycopg3) / SQLite | [`shiksha/models/`](shiksha/models/) |
+| Storage | Local FS / S3 / Cloudflare R2 | [`shiksha/services/storage.py`](shiksha/services/storage.py) |
+| Hardening | Talisman CSP/HSTS · Flask-WTF CSRF · Flask-Limiter · pydantic validation | [`shiksha/__init__.py`](shiksha/__init__.py), [`shiksha/api/schemas.py`](shiksha/api/schemas.py) |
 
 ---
 
-## 🚀 Getting Started (local development)
-
-### 1. Backend (Flask)
+## Quickstart
 
 ```bash
-# from the repo root
-python -m venv .venv && . .venv/Scripts/activate   # Windows
-# source .venv/bin/activate                        # macOS / Linux
-
+# 1) Backend
+python -m venv .venv && . .venv/Scripts/activate    # Windows
+# source .venv/bin/activate                         # macOS / Linux
 pip install -r requirements.txt
 
-cp .env.example .env        # then fill in the values (see below)
-python app.py               # http://localhost:5000
+cp .env.example .env        # set SECRET_KEY + at least one LLM key (see below)
+python wsgi.py              # dev server → http://localhost:5000
+# prod:  gunicorn wsgi:app
+
+# 2) Background worker (needs Redis running)
+rq worker video --url "$REDIS_URL"
+
+# 3) Frontend (only if changing the UI)
+cd frontend/vidlearn-frontend-main && npm install && npm run build
 ```
 
-**Required environment variables** (see [.env.example](.env.example)):
+Or run the whole stack (web + worker + Redis + Postgres) with one command:
+
+```bash
+docker compose up --build      # http://localhost:8000  ·  GET /health → 200
+```
+
+**Required env** (full list in [.env.example](.env.example)):
 
 | Variable | Notes |
-| :--- | :--- |
-| `SECRET_KEY` | Generate: `python -c "import secrets; print(secrets.token_hex(32))"` |
-| `GOOGLE_API_KEY` *or* `KODEKLOUD_API_KEY` | At least one LLM provider. |
-| `REDIS_URL` | Local Redis or a free Upstash instance. |
-| `DATABASE_URL` | Defaults to SQLite; use Postgres in production. |
-
-> 🔒 **Never commit your `.env`.** It is gitignored. Keep real keys out of the repo and out of the frontend.
-
-### 2. Frontend (React + Vite)
-
-```bash
-cd frontend/vidlearn-frontend-main
-npm install
-npm run dev          # dev server with HMR
-npm run build        # outputs to ../../frontend/build (served by Flask)
-```
+|---|---|
+| `SECRET_KEY` | `python -c "import secrets; print(secrets.token_hex(32))"` |
+| `GOOGLE_API_KEY` *or* `KODEKLOUD_API_KEY` | At least one LLM provider |
+| `REDIS_URL` | Local Redis or free Upstash; powers the queue, progress + rate limiter |
+| `DATABASE_URL` | SQLite by default; Postgres in production |
 
 ---
 
-## 🛰️ Production deployment
+## Health & results
 
-The app is designed to run behind **nginx (TLS via Let's Encrypt)** with **gunicorn** serving Flask and a separate **RQ worker** doing the heavy lifting.
+`GET /health` reports each dependency independently and returns `503` if any
+critical one is down — handy for load balancers and the compose healthcheck:
 
-```bash
-# 1. Web server (handles API + serves the built SPA)
-gunicorn --workers 4 --timeout 120 --bind 127.0.0.1:5000 wsgi:application
-
-# 2. Background worker (run one or more)
-rq worker video --url "$REDIS_URL"
+```json
+{ "status": "ok",
+  "checks": { "database": {"ok": true}, "redis": {"ok": true},
+              "chrome": {"ok": true}, "ffmpeg": {"ok": true} } }
 ```
 
-Set these in the environment for production:
-
-```env
-FLASK_ENV=production
-USE_TASK_QUEUE=true
-DATABASE_URL=postgresql://user:pass@host:5432/shishka
-ALLOWED_ORIGINS=https://your-domain.com
-STORAGE_BACKEND=s3            # optional: persist artifacts to S3 / Cloudflare R2
-```
-
-In production the app automatically enables:
-
-- **Secure session cookies** (`Secure`, `HttpOnly`, `SameSite=Lax`).
-- **HSTS** and a strict **Content-Security-Policy** (plus `X-Frame-Options`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`) via Flask-Talisman.
-- **CSRF protection** (Flask-WTF) on all state-changing endpoints.
-- **Rate limiting** backed by Redis.
-
-A sample nginx server block (TLS, SPA fallback, API proxy, long-term asset caching) is in [nginx.txt](nginx.txt).
+**Sample output:** a prompt like *"Explain how binary search works"* yields a
+~60–90s narrated `.mp4` of animated segments plus a multi-question quiz and a
+study-notes PDF. (Drop a real sample under `docs/` and link it here.)
 
 ---
 
-## 🔐 Security & ops notes
+## Security
 
-- Static assets are content-hashed by Vite — serve `/assets/*` with `Cache-Control: immutable, max-age=31536000` and keep `index.html` uncacheable.
-- Generated artifacts can be offloaded to object storage (`STORAGE_BACKEND=s3`) so the app scales horizontally.
-- Run `pip-audit` (Python) and `npm audit` (frontend) before each release.
+- **Generated code is untrusted** and double-sandboxed: a static scan rejects
+  network/storage/`eval` APIs, and the render HTML runs under a restrictive CSP
+  (`connect-src 'none'`). See [`shiksha/pipeline/orchestrator.py`](shiksha/pipeline/orchestrator.py).
+- CSRF (Flask-WTF), rate limits (Flask-Limiter), and pydantic schemas guard every
+  state-changing route; Talisman sets CSP/HSTS/`X-Frame-Options`.
+- Secrets live only in `.env` (gitignored). A sample nginx TLS config is in [nginx.txt](nginx.txt).
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for the production split, managed-service wiring, and the migration release step.
 
 ---
 
-<div align="center">
-  <sub>Built with ❤️ and a lot of caffeine by Krishiv.</sub>
-</div>
+<div align="center"><sub>Built by Krishiv · <a href="LICENSE">MIT</a></sub></div>

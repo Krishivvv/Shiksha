@@ -1,0 +1,38 @@
+# VCS & tooling
+.git
+.github
+.claude
+.gitignore
+
+# Python caches / local envs
+__pycache__/
+*.pyc
+.venv
+venv
+.pytest_cache
+.ruff_cache
+
+# Secrets & local DB
+.env
+.env.*
+!.env.example
+instance/
+*.db
+*.sqlite*
+
+# Generated / runtime artifacts (regenerated at runtime)
+output/
+uploads/
+segments/
+voice/
+final_videos/
+pdf_images/
+temp_render.html
+
+# Frontend source + node deps (only the committed build/ is needed to serve)
+frontend/vidlearn-frontend-main/node_modules/
+**/node_modules/
+
+# Docs / CI that don't belong in the image
+*.md
+nginx.txt
