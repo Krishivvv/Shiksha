@@ -86,6 +86,12 @@ Migrate(app, db)
 
 # ── Security headers (CSP / HSTS / X-Frame-Options / nosniff / Referrer-Policy) ──
 
+# Hugging Face Spaces serves the app inside an iframe on huggingface.co, so when
+# running there we must allow that origin to frame us. Everywhere else we keep
+# the strict deny-all policy. HF sets SPACE_ID in the container environment.
+_ON_HF = bool(os.getenv("SPACE_ID"))
+_frame_ancestors = "'self' https://huggingface.co https://*.hf.space" if _ON_HF else "'none'"
+
 _csp = {
     "default-src": "'self'",
     "script-src": "'self'",
@@ -98,7 +104,7 @@ _csp = {
     "object-src": "'none'",
     "base-uri": "'self'",
     "form-action": "'self'",
-    "frame-ancestors": "'none'",
+    "frame-ancestors": _frame_ancestors,
 }
 
 Talisman(
@@ -111,7 +117,9 @@ Talisman(
     strict_transport_security_max_age=31536000,
     strict_transport_security_include_subdomains=True,
     session_cookie_secure=config.IS_PRODUCTION,
-    frame_options="DENY",
+    # X-Frame-Options can't express an allow-list; omit it on HF and let the CSP
+    # frame-ancestors directive govern embedding. Strict DENY everywhere else.
+    frame_options=None if _ON_HF else "DENY",
     referrer_policy="strict-origin-when-cross-origin",
     permissions_policy="camera=(), microphone=(), geolocation=(), payment=(), browsing-topics=()",
 )
