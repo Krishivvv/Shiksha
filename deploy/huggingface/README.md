@@ -7,7 +7,7 @@ sdk: docker
 app_port: 8000
 pinned: true
 license: mit
-short_description: AI educational-video generator (LLM → p5.js → FFmpeg) + quizzes
+short_description: Prompt-to-video AI lessons with quizzes & notes
 ---
 
 # Shiksha — live demo (Hugging Face Space)
