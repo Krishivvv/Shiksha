@@ -13,19 +13,22 @@ Run a worker in production with:
     rq worker video --url $REDIS_URL
 """
 
-import os
 import logging
+import os
 import threading
 
-import config
+from shiksha import config
 
 logger = logging.getLogger(__name__)
+
+# Fully-qualified path RQ uses to import the job in the worker process.
+_JOB_PATH = "shiksha.services.tasks.run_generation"
 
 _queue = None
 
 
 def get_queue():
-    """Return a lazily-created RQ queue, or None if unavailable."""
+    """Return a lazily-created RQ queue, or ``None`` if unavailable."""
     global _queue
     if _queue is None and config.USE_TASK_QUEUE and config.REDIS_URL:
         try:
@@ -44,11 +47,11 @@ def get_queue():
 
 
 def enqueue_generation(video_db_id, prompt, computed_filename, username, task_id) -> str:
-    """Dispatch a generation job. Returns 'queued' or 'thread'."""
+    """Dispatch a generation job. Returns ``'queued'`` (RQ) or ``'thread'`` (fallback)."""
     queue = get_queue()
     if queue is not None:
         queue.enqueue(
-            "tasks.run_generation",
+            _JOB_PATH,
             video_db_id, prompt, computed_filename, username, task_id,
             job_timeout=config.JOB_TIMEOUT,
         )
@@ -70,11 +73,11 @@ def run_generation(video_db_id, prompt, computed_filename, username, task_id) ->
     Imports are deferred so the (heavy) media pipeline is only loaded inside the
     worker process, never in the lightweight web process.
     """
-    from app import app, db
-    from models import Video
-    from main import generate_video
-    from progress import set_progress
-    import storage
+    from shiksha import app, db
+    from shiksha.models import Video
+    from shiksha.pipeline import generate_video
+    from shiksha.services import storage
+    from shiksha.services.progress import set_progress
 
     with app.app_context():
         video_rec = db.session.get(Video, video_db_id)

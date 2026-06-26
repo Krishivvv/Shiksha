@@ -1,9 +1,10 @@
+import logging
 import os
 import subprocess
-import logging
+
 from fpdf import FPDF
 
-import config
+from shiksha import config
 
 logger = logging.getLogger(__name__)
 

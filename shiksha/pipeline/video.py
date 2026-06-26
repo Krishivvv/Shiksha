@@ -1,8 +1,8 @@
-import subprocess
 import logging
+import subprocess
 from pathlib import Path
 
-import config
+from shiksha import config
 
 logger = logging.getLogger(__name__)
 

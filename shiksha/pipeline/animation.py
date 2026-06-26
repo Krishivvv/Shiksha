@@ -2,44 +2,27 @@ import asyncio
 import base64
 import logging
 from pathlib import Path
+
 from jinja2 import Template
-import os
-import shutil
-from helper import safe_launch
+
+from shiksha.core.helpers import get_chrome_path, safe_launch
 
 logger = logging.getLogger(__name__)
 
+# base.html lives alongside the package templates regardless of CWD.
+_BASE_HTML = Path(__file__).resolve().parent.parent / "templates" / "base.html"
+
+CHROME_PATH = get_chrome_path()
+
+
 def generate_html(js_code, output_html_path="temp_render.html"):
-    template_text = Path("base.html").read_text()
+    """Render the p5.js sketch into the capture HTML template; returns its path."""
+    template_text = _BASE_HTML.read_text(encoding="utf-8")
     template = Template(template_text)
     rendered_html = template.render(code=js_code)
     logger.debug("Rendered animation template")
     Path(output_html_path).write_text(rendered_html, encoding="utf-8")
     return output_html_path
-
-if os.name == "nt":  # Windows
-    possible_paths = [
-        os.getenv("CHROME_PATH"),
-        shutil.which("chrome"),
-        r"C:\Program Files\Google\Chrome\Application\chrome.exe",
-        r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"
-    ]
-    # Select the first path that is not None and exists on disk.
-    CHROME_PATH = next((p for p in possible_paths if p and os.path.exists(p)), None)
-    if not CHROME_PATH:
-        # Fallback: assume "chrome" is in the PATH.
-        CHROME_PATH = "chrome"
-else:
-    # Linux / Unix. Try the common binary names or a default location.
-    CHROME_PATH = (
-        os.getenv("CHROME_PATH") or
-        shutil.which("google-chrome-stable") or
-        shutil.which("google-chrome") or
-        shutil.which("chromium-browser") or
-        shutil.which("chromium") or
-        shutil.which("chrome") or
-        "/usr/bin/google-chrome-stable"
-    )
 
 
 async def record_animation(html_path, segment_id, duration, segments_folder="segments"):
@@ -127,7 +110,7 @@ async def record_animation(html_path, segment_id, duration, segments_folder="seg
 
         # Wait for blobBase64 to be ready
         logger.debug("Waiting for blobBase64 to be set...")
-        for i in range(30):  # wait up to ~30 seconds
+        for _ in range(30):  # wait up to ~30 seconds
             ready = await page.evaluate("typeof window.blobBase64 === 'string' && window.blobBase64.length > 1500") # 1000
             if ready:
                 logger.debug("Blob is ready")

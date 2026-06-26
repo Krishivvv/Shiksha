@@ -1,0 +1,81 @@
+# Local production-parity stack: web + RQ worker + Redis + Postgres.
+# Bring it up with:  docker compose up --build
+# The web service waits for Redis/Postgres to be healthy; the worker shares the
+# web image and runs `rq worker`.
+
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: shiksha
+      POSTGRES_PASSWORD: shiksha
+      POSTGRES_DB: shiksha
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shiksha"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  web:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      FLASK_ENV: production
+      DATABASE_URL: postgresql://shiksha:shiksha@postgres:5432/shiksha
+      REDIS_URL: redis://redis:6379/0
+      USE_TASK_QUEUE: "true"
+    ports:
+      - "8000:8000"
+    volumes:
+      # Share generated artifacts between web (serves them) and worker (writes them).
+      - media:/app/output
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health').status==200 else 1)\""]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  worker:
+    build: .
+    restart: unless-stopped
+    command: rq worker video --url redis://redis:6379/0
+    env_file: .env
+    environment:
+      FLASK_ENV: production
+      DATABASE_URL: postgresql://shiksha:shiksha@postgres:5432/shiksha
+      REDIS_URL: redis://redis:6379/0
+      USE_TASK_QUEUE: "true"
+    volumes:
+      - media:/app/output
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  media:

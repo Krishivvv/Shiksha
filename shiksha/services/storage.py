@@ -9,11 +9,11 @@ Backend is chosen with STORAGE_BACKEND=local|s3. When ``s3`` is configured the
 download endpoints redirect to short-lived presigned URLs.
 """
 
-import os
 import logging
 import mimetypes
+import os
 
-import config
+from shiksha import config
 
 logger = logging.getLogger(__name__)
 

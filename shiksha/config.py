@@ -6,6 +6,7 @@ few hard requirements (SECRET_KEY) during startup so tooling/imports stay cheap.
 """
 
 import os
+
 from dotenv import load_dotenv
 
 load_dotenv()
