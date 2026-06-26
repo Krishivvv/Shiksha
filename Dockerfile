@@ -53,4 +53,7 @@ EXPOSE 8000
 
 # Web service by default. The worker overrides this with:
 #   rq worker video --url $REDIS_URL
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "2", "--timeout", "120", "--access-logfile", "-", "wsgi:app"]
+# --workers 1: the demo (Option A) runs the render pipeline in an in-process
+# background thread and Chromium is RAM-heavy, so a single worker keeps the
+# free CPU tier from OOMing. Bump this for the production split (separate worker).
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "1", "--timeout", "120", "--access-logfile", "-", "wsgi:app"]
